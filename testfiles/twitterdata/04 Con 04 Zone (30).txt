@@ -1,0 +1,4 @@
+Travel 18
+Hifi 18
+Cars 57
+Journalism 32

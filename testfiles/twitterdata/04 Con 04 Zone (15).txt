@@ -1,0 +1,4 @@
+Computers 2
+Media 27
+Books 5
+Journalism 34

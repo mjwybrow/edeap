@@ -1,0 +1,17 @@
+Camping Android 2
+Media Technology Web 6
+Books Programming 10
+Technology Web 12
+Technology Journalism Web 3
+News Health 14
+News 1
+Programming 1
+Programming Web 2
+Journalism 3
+Journalism Web 4
+Journalism Stars 2
+Stars 9
+Android 3
+Web 11
+Web Health 4
+Health 67

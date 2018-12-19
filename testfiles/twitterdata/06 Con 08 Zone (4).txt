@@ -1,0 +1,8 @@
+Technology 20
+Programming 6
+Programming Journalism 2
+Programming Books 2
+Journalism 12
+Books 11
+Movies 12
+Relaxation 30

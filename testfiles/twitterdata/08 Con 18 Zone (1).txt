@@ -1,0 +1,18 @@
+Economics 6
+Economics Relaxation Travel Web Food 5
+Economics Travel 2
+Economics Internet 2
+Economics Travel Web 3
+Economics Web 14
+Economics Relaxation Travel 3
+Economics Relaxation Web 3
+Internet 10
+College 1
+Relaxation Web 2
+Travel 6
+Travel Web 2
+Web Food 2
+Web 14
+Web Health 12
+Food 7
+Health 7

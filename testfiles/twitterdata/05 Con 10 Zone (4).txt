@@ -1,0 +1,10 @@
+Computers 22
+Computers Bands 6
+Computers Hifi 4
+Stars Media 6
+Stars 13
+Stars Hifi 2
+Bands 3
+Bands Media 2
+Media 13
+Hifi 16

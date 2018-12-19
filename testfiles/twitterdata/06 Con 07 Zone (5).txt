@@ -1,0 +1,7 @@
+Bands 24
+Health 2
+Camping 1
+Food 2
+Food News 2
+Internet 1
+News 42

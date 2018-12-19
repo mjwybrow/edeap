@@ -1,0 +1,3 @@
+Technology 8
+Design 2
+Health 15

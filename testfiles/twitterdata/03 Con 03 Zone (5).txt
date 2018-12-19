@@ -1,0 +1,3 @@
+Health 20
+Cars 30
+Design 29

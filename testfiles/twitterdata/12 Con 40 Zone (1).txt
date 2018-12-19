@@ -1,0 +1,40 @@
+iPhone Movies 2
+iPhone Programming Travel 3
+iPhone Design Stars Journalism Travel Games Movies 7
+iPhone 1
+iPhone Food Computers Programming Bands Design Stars Journalism Travel Games Movies Web 12
+Food Design Travel 3
+Food Computers Design Stars Travel Movies 6
+Computers 1
+Computers Stars 2
+Computers Design Stars Travel Movies 5
+Programming Design Games 3
+Programming Journalism Travel Games Movies 5
+Bands 3
+Bands Web 2
+Design Stars Journalism Travel Games 5
+Design Journalism Travel Games Movies 5
+Design Journalism 2
+Stars Journalism Movies Web 4
+Stars Journalism Travel Movies 8
+Stars 1
+Stars Movies 4
+Stars Journalism Web 3
+Stars Movies Web 3
+Stars Travel Web 3
+Stars Games 2
+Stars Travel Games Movies 4
+Stars Journalism Travel Games 4
+Journalism 2
+Journalism Movies Web 3
+Journalism Travel Web 3
+Travel Movies 2
+Travel Games 2
+Travel Web 2
+Travel Games Web 3
+Games Movies 4
+Games 1
+Games Movies Web 3
+Movies 5
+Movies Web 4
+Web 10

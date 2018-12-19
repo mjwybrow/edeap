@@ -1,0 +1,13 @@
+Food Music Computers 3
+Food Music 4
+Food Music Computers Stars 4
+Food Music Travel 12
+Music 4
+Music Stars 6
+Travel Computers 4
+Travel 2
+Travel Stars 4
+Travel Computers Stars 3
+Computers Stars 10
+Computers 2
+Stars 16

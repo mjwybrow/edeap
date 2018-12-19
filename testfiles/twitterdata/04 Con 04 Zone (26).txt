@@ -1,0 +1,4 @@
+Food 6
+Design 10
+Economics 28
+Android 21

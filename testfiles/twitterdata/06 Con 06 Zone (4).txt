@@ -1,0 +1,6 @@
+Travel 32
+Books 2
+Movies 4
+Stars 11
+Internet 10
+Food 27

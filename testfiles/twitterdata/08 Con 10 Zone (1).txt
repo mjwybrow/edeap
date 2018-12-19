@@ -1,0 +1,10 @@
+Health 1
+Food 2
+Food Web 2
+Food Journalism 4
+Economics Stars 2
+Economics 1
+Web 1
+Movies 3
+Technology 7
+Stars 1

@@ -1,0 +1,17 @@
+Computers 5
+Technology Economics Hifi 3
+Technology iPhone 2
+Technology Hifi 4
+Technology 1
+Technology Economics iPhone Hifi 4
+Technology Economics iPhone 3
+Web Hifi 2
+Web iPhone 2
+Web Economics Hifi 3
+Economics 18
+Economics Hifi 4
+Economics iPhone Hifi 9
+Economics iPhone 2
+iPhone 2
+iPhone Hifi 6
+Hifi 4

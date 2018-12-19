@@ -1,0 +1,3 @@
+Health 15
+College 27
+Economics 18

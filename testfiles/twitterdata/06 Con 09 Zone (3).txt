@@ -1,0 +1,9 @@
+Bands 22
+Bands Relaxation 2
+Stars 29
+Stars Relaxation 2
+Health 10
+Health Relaxation 2
+Media 8
+Relaxation 14
+Web 58

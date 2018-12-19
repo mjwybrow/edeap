@@ -1,0 +1,3 @@
+Food 1
+Computers 1
+Media 12

@@ -1,0 +1,11 @@
+Media 3
+Relaxation 5
+News 4
+Books 5
+Computers 5
+Design 3
+Technology 3
+iPhone 1
+Journalism 1
+Health 6
+Programming 5

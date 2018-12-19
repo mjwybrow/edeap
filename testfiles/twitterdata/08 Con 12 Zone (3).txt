@@ -1,0 +1,12 @@
+Technology 3
+Bands 23
+Bands Design 8
+Bands Journalism 6
+Bands Android 4
+Economics 11
+Economics Design 12
+Android 6
+Movies 2
+Web 7
+Journalism 9
+Design 80

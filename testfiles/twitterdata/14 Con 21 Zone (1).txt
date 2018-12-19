@@ -1,0 +1,21 @@
+Technology Programming 4
+Technology 1
+Internet 3
+Cars 3
+Journalism 12
+Journalism Health 2
+Journalism Books 16
+Journalism Relaxation 6
+Media 2
+Programming Relaxation 2
+Programming Android 2
+Programming Design 2
+Programming 1
+Android 3
+Health Books Relaxation 3
+Books 1
+News 11
+Games 2
+Relaxation 2
+Stars 20
+Design 6

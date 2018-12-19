@@ -1,0 +1,36 @@
+e1 2
+e10 4
+e11 8
+e6 3
+e7 8
+e9 8
+e1 e11 10
+e10 e11 2
+e10 e12 6
+e10 e8 9
+e10 e9 9
+e11 e3 2
+e11 e4 2
+e12 e8 4
+e2 e4 5
+e2 e9 10
+e3 e5 3
+e3 e8 8
+e6 e7 3
+e1 e10 e9 8
+e1 e11 e12 8
+e10 e11 e2 8
+e10 e12 e6 7
+e11 e3 e8 8
+e11 e4 e5 5
+e12 e6 e9 7
+e3 e5 e7 4
+e4 e6 e8 9
+e1 e10 e3 e8 2
+e1 e10 e3 e9 10
+e1 e2 e8 e9 5
+e10 e11 e2 e4 8
+e10 e2 e3 e8 9
+e2 e3 e4 e6 7
+e2 e4 e5 e7 4
+e4 e5 e8 e9 7

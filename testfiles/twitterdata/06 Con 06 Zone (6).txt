@@ -1,0 +1,6 @@
+Bands 1
+Technology 8
+Programming 15
+Cars 10
+Stars 4
+Hifi 13

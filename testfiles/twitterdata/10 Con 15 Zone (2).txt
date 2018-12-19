@@ -1,0 +1,15 @@
+Travel College 4
+Hifi 2
+College 13
+College Bands Internet 3
+Movies 5
+Bands Internet 34
+Bands 4
+Economics Internet 2
+Economics 1
+Internet News 2
+Internet 19
+News 10
+News Programming 8
+Programming 11
+Journalism 8

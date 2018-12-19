@@ -1,0 +1,10 @@
+Chronic_Bronchitis 1
+EmphysemAsthma 2
+Asthmairflow_Obstruction 10
+Chronic_Bronchitis EmphysemAsthma 11
+Chronic_Bronchitis Asthmairflow_Obstruction 3
+EmphysemAsthma Asthmairflow_Obstruction 4
+Chronic_Bronchitis Asthma Asthmairflow_Obstruction 6
+EmphysemAsthma Asthma Asthmairflow_Obstruction 7
+Chronic_Bronchitis EmphysemAsthma Asthma Asthmairflow_Obstruction 8
+Chronic_Bronchitis EmphysemAsthma Asthmairflow_Obstruction 5

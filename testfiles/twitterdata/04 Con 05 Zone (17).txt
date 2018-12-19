@@ -1,0 +1,5 @@
+Health Relaxation 8
+Health 6
+Travel 10
+Books 12
+Relaxation 1

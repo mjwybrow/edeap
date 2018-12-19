@@ -1,0 +1,12 @@
+Economics Media Camping 24
+Economics Travel Media Camping 4
+Travel Food 20
+Travel Books 12
+Travel Media Food Camping 4
+Travel Media Camping 3
+Travel 2
+Media Camping 12
+Food 6
+Food Books 2
+Books 6
+Camping 21

@@ -1,0 +1,10 @@
+Food 9
+Design 1
+Music 1
+College Android 2
+College 3
+Android 10
+Android Technology 6
+Journalism 25
+Journalism Technology 2
+Technology 34

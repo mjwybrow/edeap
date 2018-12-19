@@ -1,0 +1,15 @@
+e8 6
+e1 e2 4
+e6 e9 1
+e1 e3 e4 7
+e1 e4 e5 7
+e1 e4 e6 5
+e2 e8 e9 8
+e1 e2 e3 e7 3
+e1 e3 e5 e6 7
+e1 e5 e8 e9 8
+e4 e6 e8 e9 7
+e1 e3 e4 e5 e6 8
+e2 e4 e7 e8 e9 4
+e3 e4 e5 e6 e7 2
+e1 e2 e3 e4 e5 e8 8

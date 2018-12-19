@@ -1,0 +1,6 @@
+Bands Camping 2
+Bands 12
+Technology 2
+Technology Camping 2
+Health Camping 12
+Camping 25

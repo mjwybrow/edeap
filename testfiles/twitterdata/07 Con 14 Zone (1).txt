@@ -1,0 +1,14 @@
+Cars Technology 98
+Cars Bands Technology 3
+Cars iPhone Technology 15
+Cars Economics Web Technology 4
+Cars Economics Bands Web Technology 10
+Cars Relaxation Technology 6
+Cars Relaxation iPhone Technology 4
+Cars Web Technology 3
+Cars Economics iPhone Bands Web Technology 6
+Economics Web 2
+Relaxation 1
+iPhone 7
+Bands 16
+Web 1

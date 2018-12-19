@@ -1,0 +1,3 @@
+Food 7
+Food Stars 6
+Stars 3

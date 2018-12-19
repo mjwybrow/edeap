@@ -1,0 +1,16 @@
+Health 8
+Health Bands 2
+Programming Relaxation 2
+Food Travel 2
+Camping Bands 2
+Camping 1
+Games Journalism 2
+Games 2
+Media 10
+Media Bands 4
+Economics 3
+Journalism 6
+Journalism Bands 2
+Travel 4
+Bands 8
+News 3

@@ -1,0 +1,4 @@
+Relaxation 15
+Technology 6
+Media 23
+Cars 104

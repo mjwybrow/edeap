@@ -1,0 +1,4 @@
+Food 5
+iPhone 1
+Cars 21
+News 9

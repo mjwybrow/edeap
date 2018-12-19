@@ -1,0 +1,3 @@
+Food 6
+Computers 1
+Books 3

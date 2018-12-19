@@ -1,0 +1,7 @@
+Health 1
+Movies 4
+Bands 1
+Cars 1
+Programming 1
+Economics 3
+Relaxation 1

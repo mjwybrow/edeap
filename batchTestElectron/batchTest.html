@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Edeap Batch Test Results</title>
+	<script type="text/javascript" src="..\www\venneulerstress.js"></script>
+	<script type="text/javascript" src="..\www\ellipses.js"></script>
+	<script type="text/javascript" src="..\www\utils.js"></script>
+	<script type="text/javascript" src="..\www\optimizer.js"></script>
+	<link rel="stylesheet" type="text/css" href="..\www\edeap.css">
+	<style>
+		.progressRow {
+			display: none;
+		}
+		.venneuler {
+			background-color: WhiteSmoke;
+		}
+	</style>
+	<style id="showDetailStyle"></style>
+
+<script type="text/javascript">
+
+	// Node libraries
+	var fs = require("fs");
+    var path = require("path");
+	const { exec } = require('child_process');
+
+	var batchDirectory = "";
+	var fullBatchDirectory = "";
+
+	var totalFiles = 0;
+	var totalTime = 0;
+	var totalEvaluatedSolutions = 0;
+
+	var testDirectories = [];
+	var venneulerOutput = [];
+	var delayedResults = [];
+
+	var venneulerTesting = false;
+	var eulerrTesting = false;
+
+	var jobQueue = [];
+	var numberOfInitialJobs = 0;
+	var currentInitialJob = 0;
+
+	// Time limit for venneuler and eulerr
+	var timeLimitSec = 30 * 60; // 30 minutes
+
+	function initBatch() {
+
+		// simple check for IE 8 or less
+		try {
+			var a = [1];
+			var b = a.indexOf[0];
+		} catch(err) {
+			document.write("Your web browser is not compatible with this web page. Please update your web browser to a later version or try a different one.");
+			return;
+		}
+
+		var areaSpecificationText = gup('areaSpecification');
+		width = gup('width');
+		height = gup('height');
+		setLabels = gup('setLabels');
+		intersectionValues = gup('intersectionValues');
+		startingDiagram = gup('startingDiagram');
+
+		if(width === "") {
+			width = 300;
+		} else {
+			document.getElementById("widthEntry").value = width;
+		}
+
+		if(height === "") {
+			height = 300;
+		} else {
+			document.getElementById("heightEntry").value = height;
+		}
+
+		showSetLabels = true;
+		if(setLabels === "off") {
+			showSetLabels = false;
+		}
+
+		showIntersectionValues = true;
+		if(intersectionValues === "off") {
+			showIntersectionValues = false;
+		}
+
+		testDirectories = [];
+		// Read the directories in the testfiles directory.
+		var scriptDir = path.dirname(require.main.filename) + "/../testfiles/"
+		fs.readdir(scriptDir, function (err, files) {
+		    if (err)
+			{
+		        throw err;
+		    }
+
+			// Display directories as a dropdown menu.
+			let content = "Test directory: ";
+			content += '<select id="runTestDirectorySelect" onchange="testDirectorySelected(this)">';
+
+			for (var i = 0; i < files.length; ++i)
+			{
+				var fullfile = path.join(scriptDir, files[i]);
+				testDirectories.push(fullfile);
+				if (fs.statSync(fullfile).isDirectory())
+				{
+					var directory = "testfiles/" + files[i];
+					content += '<option value="' + i + '">' + directory + '</option>';
+				}
+			}
+
+			content += '</select>';
+			document.getElementById("runTestDirectory").innerHTML = content;
+			testDirectorySelected(document.getElementById("runTestDirectorySelect"));
+		});
+	}
+
+	// Called when the user selects a test directory.
+	function testDirectorySelected(e)
+	{
+		var directoryIndex = Number(e.options[e.selectedIndex].value);
+		var directory = testDirectories[directoryIndex];
+
+		batchDirectory = e.options[e.selectedIndex].text;
+		fullBatchDirectory = directory;
+
+		jobQueue = [];
+
+		// Read all the files in the test directory and save their names and
+		// contents as area specification.
+		fs.readdir(directory, function (err, files) {
+		    if (err)
+			{
+		        throw err;
+		    }
+
+			var text = "<br>";
+			text += "<pre>directory: "+batchDirectory+"<br><br>";
+			for (var i = 0; i < files.length; i++)
+			{
+				var fullfile = path.join(directory, files[i]);
+
+				// If this is a .txt file, read it's contents as area specification.
+				if (fs.statSync(fullfile).isFile() && path.extname(files[i]) === ".txt")
+				{
+					var inputFileName = files[i];
+					text += inputFileName+'<br>';
+
+					var areaSpecification = fs.readFileSync(fullfile, 'utf8');
+
+					jobQueue.push({
+						type: "edeap",
+						filename: inputFileName,
+						areaSpec: areaSpecification
+					});
+				}
+			}
+			numberOfInitialJobs = jobQueue.length;
+			currentInitialJob = 0;
+			text += "</pre>";
+			document.getElementById('testText').innerHTML = text;
+		});
+	}
+
+	var testPartIndex = 0;
+	var csvResultsText = "";
+	var resultsTableHeader;
+	var resultsTableFooter;
+
+
+	function runTests() {
+
+		testPartIndex = 0;
+		totalFiles = 0;
+		totalTime = 0;
+		totalEvaluatedSolutions = 0;
+		csvResultsText = "File,Edeap Evaluated Solutions,Edeap Fitness,Edeap Final Area Diff,Edeap Stress,Edeap Time (secs)";
+		if (venneulerTesting)
+		{
+			csvResultsText += ", venneuler Final Area Diff, venneuler stress, venneuler Time (secs)";
+		}
+		if (eulerrTesting)
+		{
+			csvResultsText += ", eulerr Final Area Diff, eulerr stress, eulerr Time (secs)";
+		}
+		csvResultsText += "\n";
+
+		resultsTableHeader = "";
+
+		resultsTableHeader += '<input style="margin-left: 70px;" type="checkbox" name="showDetail" id="areaSpecColumnCheckbox" value="areaSpecColumn" onchange="toggleColumnCheckbox(this)" checked> <label for="areaSpecColumnCheckbox">Show orig area spec</label>';
+		resultsTableHeader += '<input style="margin-left: 70px;" type="checkbox" name="showDetail" id="statsColumnCheckbox" value="statsColumn" onchange="toggleColumnCheckbox(this)" checked> <label for="statsColumnCheckbox">Show stats</label>';
+		resultsTableHeader += '<input style="margin-left: 70px;" type="checkbox" name="showDetail" id="diagramColumnCheckbox" value="diagramColumn" onchange="toggleColumnCheckbox(this)" checked> <label for="diagramColumnCheckbox">Show diagrams</label>';
+		resultsTableHeader += '<input style="margin-left: 70px;" type="checkbox" name="showDetail" id="finalAreaTableColumnCheckbox" value="finalAreaTableColumn" onchange="toggleColumnCheckbox(this)" checked> <label for="finalAreaTableColumnCheckbox">Show area table</label>';
+		resultsTableHeader += '<br /><br />';
+
+		resultsTableHeader += '<table border="1">\n';
+		resultsTableHeader += '<thead>';
+		resultsTableHeader += '<tr>';
+		resultsTableHeader += '<th>File Name</th>\n';
+		resultsTableHeader += '<th class="areaSpecColumn">Original<br>Area Specification</th>\n';
+		resultsTableHeader += '<th class="statsColumn">Edeap<br>Solutions</th>\n';
+		resultsTableHeader += '<th class="statsColumn">Edeap<br>Time\n(sec)</th>\n';
+		resultsTableHeader += '<th class="statsColumn">Edeap<br />Area Diff</th>\n';
+		resultsTableHeader += '<th class="statsColumn">Edeap<br />Stress</th>\n';
+		resultsTableHeader += '<th class="statsColumn">Edeap<br>Status</th>\n';
+		resultsTableHeader += '<th class="diagramColumn">Edeap<br>Diagram</th>\n';
+		resultsTableHeader += '<th class="finalAreaTableColumn">Edeap<br>Area Specification</th>\n';
+		if (venneulerTesting)
+		{
+			resultsTableHeader += '<th class="venneuler statsColumn">venneuler<br>Time\n(sec)</th>\n';
+			resultsTableHeader += '<th class="venneuler statsColumn">venneuler<br />Area Diff</th>\n';
+			resultsTableHeader += '<th class="venneuler statsColumn">venneuler<br />Stress</th>\n';
+			resultsTableHeader += '<th class="venneuler diagramColumn">venneuler<br>Diagram</th>\n';
+			resultsTableHeader += '<th class="venneuler finalAreaTableColumn">venneuler<br>Area Specification</th>\n';
+		}
+		if (eulerrTesting)
+		{
+			resultsTableHeader += '<th class="statsColumn">eulerr<br>Time\n(sec)</th>\n';
+			resultsTableHeader += '<th class="statsColumn">eulerr<br />Area Diff</th>\n';
+			resultsTableHeader += '<th class="statsColumn">eulerr<br />Stress</th>\n';
+			resultsTableHeader += '<th class="diagramColumn">eulerr<br>Diagram</th>\n';
+			resultsTableHeader += '<th class="finalAreaTableColumn">eulerr<br>Area Specification</th>\n';
+		}
+		resultsTableHeader += '</tr>';
+		resultsTableHeader += '</thead>';
+		resultsTableHeader += '<tbody id="testTableBody">';
+
+		resultsTableFooter = '</tbody>';
+		resultsTableFooter += '</table>';
+
+		document.getElementById('testText').innerHTML = resultsTableHeader + resultsTableFooter;
+
+		logMessage(logReproducability, "Start Test");
+
+		processJob();
+	}
+
+	function processJob() {
+		var progress = document.getElementById("testprogress");
+		progress.value = currentInitialJob / numberOfInitialJobs * progress.max ;
+
+		if (jobQueue.length == 0)
+		{
+			setTimeout(runTestsCompletion, 0);
+			return;
+		}
+
+		let job = jobQueue.shift();
+
+		if (job.type === "edeap")
+		{
+			currentInitialJob++;
+			runEdeapTest(job);
+		}
+		else if (job.type === "eulerr")
+		{
+			runEulerrTest(job);
+		}
+		else if (job.type === "venneuler")
+		{
+			runVenneulerTest(job);
+		}
+	}
+
+
+	function documentReplaceInnerHTML(elementId, html)
+	{
+		let element = document.getElementById(elementId)
+		if (element)
+		{
+			element.innerHTML = html;
+		}
+
+	}
+
+	function fillInDelayedResults()
+	{
+		for (let resultKey in delayedResults)
+		{
+			let result = delayedResults[resultKey];
+
+			if (result.venneulerTableBody)
+			{
+				documentReplaceInnerHTML(resultKey + "-venneuler-table", result.venneulerTableBody);
+				documentReplaceInnerHTML(resultKey + "-venneuler-diagram", '<img src="' + result.venneulerSvgFile + '" />');
+			}
+
+			if (result.eulerrTableBody)
+			{
+				documentReplaceInnerHTML(resultKey + "-eulerr-table", result.eulerrTableBody);
+				documentReplaceInnerHTML(resultKey + "-eulerr-diagram", '<img src="' + result.eulerrSvgFile + '" />');
+			}
+
+			delete delayedResults[resultKey];
+
+		}
+		writeResultsHTMLFile();
+	}
+
+
+	function runTestsCompletion() {
+		logMessage(logReproducability, "End Test");
+
+		var text = '\n<tr>';
+
+		// total files
+		text +=  '<td>'+totalFiles+'</td>';
+
+		// blank
+		text +=  '<td class="areaSpecColumn"></td>';
+
+		// TODO total evaluated solutions
+		text +=  '<td class="statsColumn">'+totalEvaluatedSolutions+'</td>';
+
+		// total time taken (for optimizer)
+		text +=  '<td class="statsColumn">'+totalTime/1000+'</td>';
+
+		// blank
+		text +=  '<td class="statsColumn"></td>';
+		text +=  '<td class="statsColumn"></td>';
+		text +=  '<td class="statsColumn"></td>';
+		text +=  '<td class="diagramColumn"></td>';
+		text +=  '<td class="finalAreaTableColumn"></td>';
+		if (venneulerTesting)
+		{
+			text +=  '<td class="statsColumn"></td>';
+			text +=  '<td class="statsColumn"></td>';
+			text +=  '<td class="statsColumn"></td>';
+			text +=  '<td class="venneuler diagramColumn"></td>';
+			text +=  '<td class="venneuler finalAreaTableColumn"></td>';
+		}
+		if (eulerrTesting)
+		{
+			text +=  '<td class="statsColumn"></td>';
+			text +=  '<td class="statsColumn"></td>';
+			text +=  '<td class="statsColumn"></td>';
+			text +=  '<td class="diagramColumn"></td>';
+			text +=  '<td class="finalAreaTableColumn"></td>';
+		}
+		text += '</tr>\n';
+
+		document.getElementById('testTableBody').innerHTML += text;
+		writeResultsHTMLFile();
+	}
+
+
+	function runEdeapTest(job) {
+
+		var inputAS = job.areaSpec
+		var fileName = job.filename;
+
+		logMessage(logReproducability, "Running file: " + fileName);
+
+		var partialFileName = fileName.replace('.txt','');
+
+		var encodedAbstractDescription = encodeAbstractDescription(inputAS);
+
+		setupGlobal(encodedAbstractDescription);
+
+		generateInitialLayout();
+
+		globalLabelLengths = findLabelSizes().lengths;
+		globalValueLengths = findValueSizes().lengths;
+		globalValueHeights = findValueSizes().heights;
+
+		animationDelay = 0;
+		animateOptimizer = false;
+		optimizerUsesSetTimeout = false;
+
+		var startTime = new Date();
+
+		optimize(function() {
+
+			var endTime = new Date();
+			var timeTaken = endTime-startTime;
+
+			totalTime += timeTaken;
+			totalEvaluatedSolutions += HCEvalSolutions;
+
+			var transformation = findTransformationToFit(width, height);
+			var scaling = transformation.scaling;
+			var translateX = transformation.translateX;
+			var translateY = transformation.translateY;
+
+			var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
+
+			var retText = '\n<tr>';
+
+			// file name
+			retText +=  '<td>'+fileName+'</td>';
+
+			// original specification
+			var splitAS = inputAS.split(/\r?\n/);
+			retText +=  '<td class="areaSpecColumn">';
+			for(var i = 0; i < splitAS.length; i++) {
+				retText += splitAS[i]+'<br>';
+			}
+			retText += '</td>';
+
+
+			// number of evaluated solutions
+			retText +=  '<td class="statsColumn">'+HCEvalSolutions+'</td>';
+
+			// final specification
+			let areas = new EdeapAreas();
+			var areaInfo = areas.zoneAreaTableBody(true);
+
+			var tableText = areaTableHTML("areaTableBody", areaInfo.tableBody);
+
+			// save the results in .results file
+			var fullFile = path.join(fullBatchDirectory, partialFileName+".result");
+			fs.writeFile(fullFile, tableText);
+
+			fullFile = path.join(fullBatchDirectory, partialFileName + "-edeap.csv");
+			fs.writeFile(fullFile, areaInfo.csvText);
+
+			var txtFile = path.join(fullBatchDirectory, fileName);
+
+			// time
+			retText += '<td class="statsColumn">'+timeTaken/1000+'</td>';
+
+			retText += '<td class="statsColumn">' + globalTotalDiff.toFixed(4)+"%</td>";
+
+			retText += '<td class="statsColumn">' + areaInfo.veStress.toFixed(6) +"</td>";
+
+			// output success/fail
+			//This is based on the percentage that the total diff is of the sum of desired zone areas
+			var allowedError = 5; // error allowed, expressed as a percentage.
+			if (globalTotalDiff > allowedError) {
+				retText += '<td class="statsColumn"><span style="color:red">FAIL</span></td>';
+				logMessage(logReproducability, "FAIL\nglobalTotalDiff: "+globalTotalDiff.toFixed(2)+"%\nallowedError: "+allowedError+"%");
+			} else {
+				retText += '<td class="statsColumn"><span style="color:green">SUCCESS</span></td>';
+				logMessage(logReproducability, "SUCCESS");
+			}
+
+
+			// svg
+			// Write SVG file.
+			var fullFile = path.join(fullBatchDirectory, partialFileName + "-edeap.svg");
+			fs.writeFile(fullFile, svgText);
+			retText +=  '<td class="diagramColumn"><img src="'+fullFile+'" /></td>';
+
+			retText += '<td class="finalAreaTableColumn">'+tableText+'</td>';
+
+			if (venneulerTesting)
+			{
+				retText += '<td class="venneuler statsColumn" id="' + partialFileName + '-venneuler-time"></td>';
+				retText += '<td class="venneuler statsColumn" id="' + partialFileName + '-venneuler-tad"></td>';
+				retText += '<td class="venneuler statsColumn" id="' + partialFileName + '-venneuler-stress"></td>';
+				retText += '<td class="venneuler diagramColumn" id="' + partialFileName + '-venneuler-diagram"></td>';
+				retText += '<td class="venneuler finalAreaTableColumn">';
+				retText += areaTableHTML(partialFileName + '-venneuler-table')
+				retText += '</td>';
+			}
+
+			if (eulerrTesting)
+			{
+				retText += '<td class="statsColumn" id="' + partialFileName + '-eulerr-time"></td>';
+				retText += '<td class="statsColumn" id="' + partialFileName + '-eulerr-tad"></td>';
+				retText += '<td class="statsColumn" id="' + partialFileName + '-eulerr-stress"></td>';
+				retText += '<td class="diagramColumn" id="' + partialFileName + '-eulerr-diagram"></td>';
+				retText += '<td class="finalAreaTableColumn">';
+				retText += areaTableHTML(partialFileName + '-eulerr-table')
+				retText += '</td>';
+			}
+
+			retText += '</tr>\n';
+
+			csvResultsText += '"' + fileName + '", ' + HCEvalSolutions + ", " + globalFinalFitness + ", " + globalTotalDiff + ", " + areaInfo.veStress + ', ' + (timeTaken/1000);
+
+			if (venneulerTesting)
+			{
+				csvResultsText += ", " + partialFileName + "-venneuler-tad, " + partialFileName + "-venneuler-stress, " + partialFileName + "-venneuler-time";
+			}
+
+			if (eulerrTesting)
+			{
+				csvResultsText += ", " + partialFileName + "-eulerr-tad, " + partialFileName + "-eulerr-stress, " + partialFileName + "-eulerr-time";
+			}
+			csvResultsText +="\n";
+
+			var fullFile = path.join(fullBatchDirectory, "results.csv");
+			fs.writeFile(fullFile, csvResultsText);
+
+			if (eulerrTesting)
+			{
+				var eulerrSpec = "c(";
+				for (let i in globalZones)
+				{
+					let zone = globalZones[i];
+					if (i > 0)
+					{
+						eulerrSpec += ', ';
+					}
+					eulerrSpec += '"' + zone.join("&") + '" = ' + globalOriginalProportions[i];
+				}
+				eulerrSpec += ")";
+
+				let areas = new EdeapAreas();
+
+				jobQueue.unshift({
+					type: "eulerr",
+					filename: partialFileName,
+					eulerrSpec: eulerrSpec,
+					areas: areas
+				});
+			}
+
+			if (venneulerTesting)
+			{
+				if (fs.existsSync(path.dirname(require.main.filename) + "/../venneuler/src-java/edeapConverter/LoadFromFile.class")) {
+
+					let areas = new EdeapAreas();
+
+					jobQueue.unshift({
+						type: "venneuler",
+						partialFileName: partialFileName,
+						filename: fileName,
+						txtFile: txtFile,
+						areas: areas
+					});
+				}
+			}
+
+			totalFiles++;
+
+			let tableBody = document.getElementById('testTableBody');
+			tableBody.innerHTML += retText;
+
+			writeResultsHTMLFile();
+
+			testPartIndex++;
+
+			setTimeout(processJob, 0);
+		});
+	}
+
+	function runVenneulerTest(job)
+	{
+		let areas = job.areas;
+		let partialFileName = job.partialFileName;
+		let filename = job.filename;
+		let txtFile = job.txtFile;
+
+		var venneulerStartTime = new Date();
+		var venneulerCommand = 'java edeapConverter/LoadFromFile "' + txtFile + '"';
+		//console.log(venneulerCommand);
+		exec(venneulerCommand, { killSignal: 'SIGKILL', timeout: timeLimitSec * 1000,  cwd: fullBatchDirectory + '/../../venneuler/src-java' }, function(error, stdout, stderr) {
+
+			if (error && error.signal === 'SIGKILL')
+			{
+				// Hit timeout.
+				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-stress", -1);
+				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-tad", -1);
+				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-time", -1);
+
+				documentReplaceInnerHTML(partialFileName + "-venneuler-stress", "TIMEOUT");
+				documentReplaceInnerHTML(partialFileName + "-venneuler-tad", "TIMEOUT");
+				documentReplaceInnerHTML(partialFileName + "-venneuler-time", "TIMEOUT");
+			}
+			else
+			{
+				eval(stdout);
+
+				var venneulerEndTime = new Date();
+				var venneulerTimeTaken = venneulerEndTime-venneulerStartTime;
+
+				venneulerOutput[filename].venneulerLayoutResults();
+				areas.useEllipseParams(veEllipseParams);
+
+				var areaInfo = areas.zoneAreaTableBody(true);
+
+				var transformation = findTransformationToFit(width, height, areas);
+				var scaling = transformation.scaling;
+				var translateX = transformation.translateX;
+				var translateY = transformation.translateY;
+
+				var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling, areas);
+
+				// Write SVG file.
+				var fullFile = path.join(fullBatchDirectory, partialFileName + "-venneuler.svg");
+				fs.writeFile(fullFile, svgText);
+
+				delayedResults[partialFileName] = {
+					venneulerTableBody: areaInfo.tableBody,
+					venneulerSvgText: svgText,
+					venneulerSvgFile: fullFile
+
+				};
+
+				fullFile = path.join(fullBatchDirectory, partialFileName + "-venneuler.csv");
+				fs.writeFile(fullFile, areaInfo.csvText);
+
+				// Add venneuler results into CSV.
+				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-stress", areaInfo.veStress);
+				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-tad", areaInfo.totalAreaDiff);
+				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-time", venneulerTimeTaken/1000);
+
+				documentReplaceInnerHTML(partialFileName + "-venneuler-stress", areaInfo.veStress.toFixed(6));
+				documentReplaceInnerHTML(partialFileName + "-venneuler-tad", areaInfo.totalAreaDiff.toFixed(4) + '%');
+				documentReplaceInnerHTML(partialFileName + "-venneuler-time", venneulerTimeTaken/1000);
+			}
+
+			var fullFile = path.join(fullBatchDirectory, "results.csv");
+			fs.writeFile(fullFile, csvResultsText);
+
+			fillInDelayedResults();
+
+			setTimeout(processJob, 0);
+		});
+	}
+
+	function runEulerrTest(job)
+	{
+		let areas = job.areas;
+		let partialFileName = job.filename;
+
+		var eulerrCommand = "/usr/local/bin/Rscript -e 'require(eulerr);fit <- euler(" + job.eulerrSpec + ", shape = \"ellipse\");coef(fit);'";
+		var eulerrStartTime = new Date();
+		exec(eulerrCommand, { killSignal: 'SIGKILL', timeout: timeLimitSec * 1000, cwd: fullBatchDirectory }, function(error, stdout, stderr) {
+
+			if (error && error.signal === 'SIGKILL')
+			{
+				// Hit timeout.
+				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-stress", -1);
+				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-tad", -1);
+				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-time", -1);
+
+				documentReplaceInnerHTML(partialFileName + "-eulerr-stress", "TIMEOUT");
+				documentReplaceInnerHTML(partialFileName + "-eulerr-tad", "TIMEOUT");
+				documentReplaceInnerHTML(partialFileName + "-eulerr-time", "TIMEOUT");
+
+			}
+			else
+			{
+				var eulerrEndTime = new Date();
+				var eulerrTimeTaken = eulerrEndTime-eulerrStartTime;
+				console.log("Running eulerr: " + job.eulerrSpec);
+				console.log(stdout);
+				console.log("");
+				let lines = stdout.match(/[^\r\n]+/g);
+				// Remove the first line.
+				lines.shift();
+
+				var ellipseList = [];
+				for (let index in lines)
+				{
+					let line = lines[index];
+					let items = line.split(" ").filter(function(n){ return n !== "" });
+
+					// Label is everything but last 5 columns
+					let xIndex = items.length - 5;
+
+					ellipseList.push({
+						x: Number(items[xIndex]),
+						y: Number(items[xIndex + 1]),
+						a: Number(items[xIndex + 2]),
+						b: Number(items[xIndex + 3]),
+						r: Number(items[xIndex + 4]),
+						label: items.slice(0, xIndex).join(" ")
+					})
+				}
+
+				// Sort the ellipses alphabetically by label.
+				ellipseList.sort(function(a, b) {
+					if (a.label < b.label)
+					{
+						return -1;
+					}
+					else if (a.label > b.label)
+					{
+						return 1;
+					}
+					return 0;
+				});
+
+				areas.ellipseLabel = [];
+				areas.ellipseParams = [];
+
+				for (let index in ellipseList)
+				{
+					let ellipse = ellipseList[index];
+
+					areas.ellipseParams[index] = {
+						X: ellipse.x,
+			        	Y: ellipse.y,
+			        	A: ellipse.a,
+			        	B: ellipse.b,
+			        	R: ellipse.r
+					};
+					areas.ellipseLabel[index] = ellipse.label
+				}
+
+				var areaInfo = areas.zoneAreaTableBody(true);
+
+				var transformation = findTransformationToFit(width, height, areas);
+				var scaling = transformation.scaling;
+				var translateX = transformation.translateX;
+				var translateY = transformation.translateY;
+
+				var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling, areas);
+
+				// Write SVG file.
+				var fullFile = path.join(fullBatchDirectory, partialFileName + "-eulerr.svg");
+				fs.writeFile(fullFile, svgText);
+
+				delayedResults[partialFileName] = {
+					eulerrTableBody: areaInfo.tableBody,
+					eulerrSvgText: svgText,
+					eulerrSvgFile: fullFile
+				};
+
+				fullFile = path.join(fullBatchDirectory, partialFileName + "-eulerr.csv");
+				fs.writeFile(fullFile, areaInfo.csvText);
+
+				// Add venneuler results into CSV.
+				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-stress", areaInfo.veStress);
+				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-tad", areaInfo.totalAreaDiff);
+				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-time", eulerrTimeTaken/1000);
+
+				documentReplaceInnerHTML(partialFileName + "-eulerr-stress", areaInfo.veStress.toFixed(6));
+				documentReplaceInnerHTML(partialFileName + "-eulerr-tad", areaInfo.totalAreaDiff.toFixed(4) + '%');
+				documentReplaceInnerHTML(partialFileName + "-eulerr-time", eulerrTimeTaken/1000);
+			}
+
+			var fullFile = path.join(fullBatchDirectory, "results.csv");
+			fs.writeFile(fullFile, csvResultsText);
+
+			fillInDelayedResults();
+
+			setTimeout(processJob, 0);
+		});
+
+	}
+
+	function areaTableHTML(tableBodyId, tableBody)
+	{
+		if (typeof tableBody === "undefined")
+		{
+			tableBody = "";
+		}
+
+		var retText = "";
+
+		retText += '<table style="width=:800px border:1;" class="areaTable">';
+		retText += '<thead>';
+		retText += '<tr>';
+		retText += '<th width="49%"></th>';
+		retText += '<th colspan="3" width="51%">Area proportion (%)</th>';
+		retText += '</tr>';
+		retText += '<tr>';
+		retText += '<th width="49%">Zone</th>';
+		retText += '<th width="17%">Desire</th>';
+		retText += '<th width="17%">Actual</th>';
+		retText += '<th width="17%">Diff</th>';
+		retText += '</tr>';
+		retText += '</thead>';
+		retText += '<tbody id="' + tableBodyId + '">';
+		retText += tableBody;
+		retText += '</tbody>';
+		retText += '</table>';
+
+		return retText
+	}
+
+	function writeResultsHTMLFile()
+	{
+		let tableBody = document.getElementById('testTableBody');
+		let resultsTableBody = tableBody.innerHTML.replace(new RegExp(fullBatchDirectory + "/", 'g'), "");
+
+		let html = "<html>";
+		html += "<head>";
+		html += '<link rel="stylesheet" type="text/css" href="../../www/edeap.css">';
+		html += '<style>.progressRow { display: none; } .venneuler { background-color: WhiteSmoke; } </style>';
+		html += '<style id="showDetailStyle"></style>';
+		html += '<script>';
+		html += 'let columnVisibility = { }; \n';
+		html += String(toggleColumnCheckbox);
+		html += '</sc' + 'ript>';
+		html += "</head>";
+		html += "<body>";
+		html += resultsTableHeader;
+		html += resultsTableBody;
+		html += resultsTableFooter;
+		html += "</body>";
+		html += "</html>";
+
+		let fullFile = path.join(fullBatchDirectory, "results.html");
+		fs.writeFile(fullFile, html);
+	}
+
+	function generateTests()
+	{
+		generateRandomDiagramDirectory();
+		initBatch();
+	}
+
+	function generateRandomDiagramDirectory()
+	{
+		let numberOfDiagrams = 6;
+		let numberOfContours = 4;
+		let numberOfZones = 6;
+		let maxZoneSize = 4;
+		let maxArea = 10;
+
+		let numberOfDiagramsFieldValue = Number(document.getElementById("generateTestsDiagrams").value);
+		if (numberOfDiagramsFieldValue > 0)
+		{
+			numberOfDiagrams = numberOfDiagramsFieldValue;
+		}
+
+		let numberOfContoursFieldValue = Number(document.getElementById("generateTestsContours").value);
+		if (numberOfContoursFieldValue > 0)
+		{
+			numberOfContours = numberOfContoursFieldValue;
+		}
+
+		let numberOfZonesFieldValue = Number(document.getElementById("generateTestsZones").value);
+		if (numberOfZonesFieldValue > 0)
+		{
+			numberOfZones = numberOfZonesFieldValue;
+		}
+
+		let maxZoneSizeFieldValue = Number(document.getElementById("generateTestsMaxZoneSize").value);
+		if (maxZoneSizeFieldValue > 0)
+		{
+			maxZoneSize = maxZoneSizeFieldValue;
+		}
+
+		let maxAreaSizeFieldValue = Number(document.getElementById("generateTestsMaxArea").value);
+		if (maxAreaSizeFieldValue > 0)
+		{
+			maxAreaSize = maxAreaSizeFieldValue;
+		}
+
+		let directory = path.dirname(require.main.filename) + "/../testfiles/randomDiagrams-" + Date.now() + "/";
+
+		let directoryFieldValue = document.getElementById("generateTestsDirectory").value;
+		if (directoryFieldValue !== "")
+		{
+			directory = path.dirname(require.main.filename) + "/../testfiles/" + directoryFieldValue + "/";
+		}
+
+		// if the directory does not exist, create it
+		if (!fs.existsSync(directory))
+		{
+			console.log("Creating directory: " + directory);
+    		fs.mkdirSync(directory);
+		}
+
+		for (let i = 1; i <= numberOfDiagrams; i++)
+		{
+			let diagramLabel = "d" + i;
+			let diagram = generateRandomDiagram(numberOfContours, numberOfZones, maxZoneSize, maxAreaSize);
+			let file = directory + diagramLabel + ".txt";
+
+			fs.writeFile(file, diagram, function(err) {
+				if (err)
+				{
+			        throw err;
+			    }
+			});
+			console.log("=========== "+diagramLabel+" ===========");
+			console.log(diagram);
+		}
+	}
+
+	function generateRandomDiagram(numberOfContours, numberOfZones, maxZoneSize, maxAreaSize)
+	{
+		let zones = [];
+
+		let count = 0;
+		while (zones.length < numberOfZones)
+		{
+
+			let zoneCount = Math.floor(Math.random() * maxZoneSize + 1);
+
+			let zone = [];
+			for (let i = 0; i < zoneCount; i++)
+			{
+				let contourNumber = Math.round((Math.floor(Math.random() * numberOfContours + 1)));
+				let contourLabel = "e"+contourNumber;
+				if (!zone.includes(contourLabel))
+				{
+					zone.push(contourLabel);
+				}
+			}
+
+			zone.sort();
+			let zoneString = "";
+			for (let index in zone)
+			{
+				zoneString += zone[index]+" ";
+			}
+
+			if (!zones.includes(zoneString))
+			{
+				zones.push(zoneString);
+			}
+
+			count++;
+			if (count > numberOfZones * 1000)
+			{
+				console.log("Fault in generateRandomDiagram("+numberOfContours+", "+numberOfZones+", "+maxZoneSize+")");
+				console.log("Cannot create the specified number of zones: "+numberOfZones);
+				break;
+			}
+		}
+
+		zones.sort(zoneComparator);
+
+		let retZones = "";
+		for (let index in zones)
+		{
+			let area = Math.round(Math.random() * (maxAreaSize - 1)) + 1;
+
+			retZones += zones[index] + String(area) + "\n";
+		}
+
+		return retZones;
+	}
+
+    // Compares two zones, represented as strings. Length first, then string compare.
+	//
+	function zoneComparator(s1, s2)
+	{
+		let count1 = s1.split(" ").length; // count number of spaces
+		let count2 = s2.split(" ").length; // count number of spaces
+		if (count1 < count2)
+		{
+			return -1;
+		}
+		if (count1 > count2)
+		{
+			return 1;
+		}
+
+		return s1.localeCompare(s2);
+
+	}
+
+	let columnVisibility = { };
+	function toggleColumnCheckbox(element)
+	{
+		let style = document.getElementById("showDetailStyle");
+		let styleContent = "";
+		columnVisibility[element.value] = element.checked;
+		for (let key in columnVisibility)
+		{
+			if (columnVisibility[key])
+			{
+				styleContent += "." + key + " { } ";
+			}
+			else
+			{
+				styleContent += "." + key + " { display: none; } ";
+			}
+		}
+		style.textContent = styleContent;
+	}
+
+
+	function generateEllipses() {
+
+		ellipseParams=[];
+		ellipseLabel=[];
+
+		var ellipseText = document.getElementById("numberOfEllipses").value;
+		var numberOfEllipses = parseInt(ellipseText);
+
+//		var svgString = '<svg height = \"400\" width=\"400\">\n';
+		for (i = 0; i < numberOfEllipses; i++) {
+			var eX = 100 + Math.floor(Math.random() * 150);
+			var eY = 100 + Math.floor(Math.random() * 150);
+			var eA = 10 + Math.floor(Math.random() * 90);
+			var eB = 10 + Math.floor(Math.random() * 90);
+			var eR = Math.floor(Math.random() * 45);
+
+			ellipseParams[i]= {
+				X: eX,
+				Y: eY,
+				A: eA,
+				B: eB,
+				R: eR
+			};
+			ellipseLabel[i]=String.fromCharCode(65 + i);
+/*
+			var color = findColor(i);
+
+			var nextSVG ='<ellipse cx="'+eX+'" cy="'+eY+'" rx="'+eA+'" ry="'+eB+'" fill="none" stroke='+color+' stroke-width="'+2+'" transform="rotate('+eR+' '+eX+' '+eY+' '+')" />'+"\n";
+			svgString += nextSVG;
+			var textX = eX;
+			var textY = eY;
+
+			var nextSVG ='<text x='+textX+' y='+textY+' stroke='+color+'>'+ellipseLabel[i]+'</text>'+"\n";
+			svgString += nextSVG;
+*/		}
+//		svgString += '</svg>';
+
+		globalLabelLengths = findLabelSizes().lengths;
+		globalValueLengths = findValueSizes().lengths;
+		globalValueHeights = findValueSizes().heights;
+
+		var width = 300;
+		var height = 300;
+
+		var transformation = findTransformationToFit(width, height);
+		var scaling = transformation.scaling;
+		var translateX = transformation.translateX;
+		var translateY = transformation.translateY;
+
+		var showSetLabels = true;
+		var showIntersectionValues = true;
+		var svgString = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
+
+		document.getElementById("generateSVG").innerHTML = svgString;
+		var areaData = computeAreasAndBoundingBoxesFromEllipses();
+
+		// Build up a set of all desired and actual zones.
+		var allZones = new Set();
+		for (var zone in areaData.zoneAreaProportions)
+		{
+			allZones.add(zone);
+		}
+	//    for (var i = 0; i < globalZoneStrings.length; ++i)
+	//    {
+	//        var zone = globalZoneStrings[i];
+	//        allZones.add(zone);
+	 //   }
+		var zonesArray = Array.from(allZones);
+		zonesArray.sort(function(a, b) {
+
+			var desiredAreaProportionA = 0;
+			var zoneIndex = globalZoneStrings.indexOf(a);
+			if (zoneIndex !== -1)
+			{
+				desiredAreaProportionA = globalProportions[zoneIndex];
+			}
+
+			var desiredAreaProportionB = 0;
+			var zoneIndex = globalZoneStrings.indexOf(b);
+			if (zoneIndex !== -1)
+			{
+				desiredAreaProportionB = globalProportions[zoneIndex];
+			}
+
+			var result = desiredAreaProportionB - desiredAreaProportionA;
+			if (result === 0)
+			{
+				return a.localeCompare(b);
+			}
+			return result;
+		});
+
+		var textString = "<code><pre>";
+
+		var totalAreaDifference = 0;
+		for (var index in zonesArray) {
+			var zone = zonesArray[index];
+
+			var extraClass = "";
+
+			var desiredAreaProportion = 0;
+			var zoneIndex = globalZoneStrings.indexOf(zone);
+			if (zoneIndex !== -1)
+			{
+				desiredAreaProportion = globalProportions[zoneIndex];
+			}
+
+			var repText = "";
+
+			var actualAreaProportion = 0;
+			if (areaData.zoneAreaProportions.hasOwnProperty(zone))
+			{
+				actualAreaProportion = areaData.zoneAreaProportions[zone];
+				var zoneOut = zone.slice(0);
+				var n = zoneOut.length;
+				while (n--) { // nasty hack to ensure all commas are replaced, there must be a better way of doing this
+					zoneOut = zoneOut.replace(","," ");
+				}
+				textString += zoneOut + " ";
+				textString += Math.round(10000*actualAreaProportion)/100;
+				textString += "\n";
+
+				// Paste this into the reproducability bit of ellipse.html
+				for(i=0; i < ellipseParams.length;i++) {
+					repText += 'ellipseParams['+i+'] = {\n';
+					repText += '    X: '+ellipseParams[i].X+',\n';
+					repText += '    Y: '+ellipseParams[i].Y+',\n';
+					repText += '    A: '+ellipseParams[i].A+',\n';
+					repText += '    B: '+ellipseParams[i].B+',\n';
+					repText += '    R: '+ellipseParams[i].R+'\n';
+					repText += '};'
+					repText += 'ellipseLabel['+i+'] = \''+ellipseLabel[i]+'\';\n';
+					repText += '\n';
+				}
+
+			}
+
+
+		}
+		textString += '\n\n'+repText+'\n\n';
+
+
+		var escapedSvg = svgString.slice(0);
+		var n = escapedSvg.length;
+		while (n--) { // nasty hack to ensure all are replaced, there must be a better way of doing this
+			escapedSvg = escapedSvg.replace("<","&lt");
+		}
+		n = escapedSvg.length;
+		while (n--) { // nasty hack to ensure all are replaced, there must be a better way of doing this
+			escapedSvg = escapedSvg.replace(">","&gt");
+		}
+
+		textString += escapedSvg;
+
+		textString += "</pre></code>";
+		document.getElementById("generateAreaSpecification").innerHTML = textString;
+
+
+	}
+
+
+</script>
+
+
+</head>
+
+<body onload="initBatch();">
+
+
+<h2>Edeap: Batch Test Results</h2>
+<fieldset>
+	<legend>Generate random tests</legend>
+	Diagrams: <input id="generateTestsDiagrams" type="text" value="6" size="3" /> &nbsp;
+	Contours: <input id="generateTestsContours" type="text" value="4" size="3" /> &nbsp;
+	Zones: <input id="generateTestsZones" type="text" value="6" size="3" /> &nbsp;
+	Max zone size: <input id="generateTestsMaxZoneSize" type="text" value="4" size="3" /> &nbsp;
+	Max area: <input id="generateTestsMaxArea" type="text" value="10" size="3" /> &nbsp;
+	Directory: <input id="generateTestsDirectory" type="text" name="generateTestsDirectory" /><br />
+	<br />
+	<input type="button" value="Generate tests" onclick="generateTests();">
+</fieldset>
+
+<br />
+
+<fieldset>
+	<legend>Run Edeap</legend>
+	<div id="runTestDirectory"></div>
+	<progress id="testprogress" style="width: 320px" value="0" max="2000"></progress>
+	<br />
+	<input type="button" value="Run Test" onclick="runTests();">
+</fieldset>
+
+<br />
+
+<div id="testText">
+</div>
+
+
+<div id="textLengthMeasure"></div>
+
+<fieldset>
+	<legend>Generate random ellipses</legend>
+	Number of Ellipses: <input id="numberOfEllipses" type="text" value="4" size="3" /> &nbsp;
+	<br />
+	<input type="button" value="Generate Ellipses" onclick="generateEllipses();">
+</fieldset>
+
+<div id="generateSVG"><svg></svg>
+</div>
+
+<div id="generateAreaSpecification"><svg></svg>
+</div>
+
+
+
+<!-- These two are only here because they are required for the reporting code in the optimizer -->
+<div style="display: none;">
+    <div id="ellipsesSVG"><svg></svg></div>
+    <div id="areaTableBody"></div>
+</div>
+
+
+
+
+</body></html>

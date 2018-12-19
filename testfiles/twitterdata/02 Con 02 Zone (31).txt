@@ -1,0 +1,2 @@
+Camping 12
+Health 5

@@ -1,0 +1,34 @@
+Programming 4
+Programming Movies 2
+Programming Journalism Web 12
+Programming Journalism Stars Movies 8
+Programming Design Stars Movies 4
+Programming Relaxation Journalism Movies Web 10
+Programming Journalism Movies Web 8
+Programming Journalism Computers Movies 4
+Programming Relaxation 2
+Programming Journalism Stars Movies Web 5
+Programming Stars Movies Web 4
+Programming Relaxation Journalism Stars Movies Web 6
+Programming Design Relaxation Journalism Stars Movies Web 14
+Design Relaxation Movies 9
+Design Movies 2
+Design Relaxation Journalism 3
+Design Journalism Stars 3
+Design Journalism Stars Movies 4
+Relaxation Movies 10
+Relaxation Stars 4
+Relaxation Computers Movies 6
+Relaxation 12
+Relaxation Journalism 4
+Relaxation Journalism Stars Computers 4
+Relaxation Journalism Stars Movies 4
+Relaxation Journalism Movies 9
+Journalism 4
+Journalism Web 6
+Journalism Stars 4
+Journalism Movies Web 3
+Stars Movies 4
+Stars 2
+Movies 16
+Web 1

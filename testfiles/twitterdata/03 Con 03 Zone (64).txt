@@ -1,0 +1,3 @@
+Health 2
+Computers 4
+Stars 7

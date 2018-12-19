@@ -1,0 +1,14 @@
+Technology Camping 2
+Technology 1
+Technology Health Camping Books Food Programming Music News Economics Stars Journalism Relaxation 12
+Technology Health Books Food Programming Music News Economics Stars Journalism 10
+Technology Journalism 2
+Technology Food News Journalism 4
+Health Food Programming Music News Economics 6
+Books Food News Stars Relaxation 5
+Food 1
+Food Programming News 3
+Food News 6
+Programming 1
+News 16
+Journalism Relaxation 2

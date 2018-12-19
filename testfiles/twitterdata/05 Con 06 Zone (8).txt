@@ -1,0 +1,6 @@
+Bands 6
+Health 4
+Relaxation 1
+Relaxation Food 2
+Food 13
+iPhone 4

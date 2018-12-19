@@ -1,0 +1,20 @@
+Journalism 8
+Hifi 18
+Travel 14
+Travel Camping 2
+Music 10
+Books Internet 14
+Books Economics 16
+Books Web Economics 6
+Books Programming 2
+Books 1
+Web 3
+Web Economics 6
+Camping 4
+Camping Economics 2
+Internet 27
+Programming 6
+Programming Economics 2
+Economics 30
+Economics Android 2
+Android 13

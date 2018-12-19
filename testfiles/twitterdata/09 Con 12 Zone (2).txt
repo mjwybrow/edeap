@@ -1,0 +1,12 @@
+iPhone 1
+Bands Health Camping Relaxation Journalism Travel Economics Programming 8
+Bands 1
+Health 2
+Health Economics 2
+Relaxation 29
+Relaxation Travel 2
+Relaxation Journalism 2
+Journalism 11
+Travel 1
+Economics 34
+Programming 2

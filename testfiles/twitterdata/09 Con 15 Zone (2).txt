@@ -1,0 +1,15 @@
+College 4
+College Stars 2
+College Travel 8
+College Internet 2
+College Internet Stars 3
+Movies 14
+Movies Bands 2
+Internet 2
+Bands 4
+Food 2
+Travel 10
+Travel Stars 2
+Stars 6
+Journalism 2
+News 2

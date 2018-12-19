@@ -1,0 +1,7 @@
+Travel 1
+Health 4
+Media 2
+Journalism 1
+News 9
+Computers 10
+Web 4

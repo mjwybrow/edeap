@@ -1,0 +1,4 @@
+Health 4
+Internet 10
+Journalism 11
+Camping 3

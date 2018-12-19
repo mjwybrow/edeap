@@ -1,0 +1,6 @@
+Camping 15
+Camping Bands 2
+Music 10
+Internet 17
+Bands 17
+Hifi 21

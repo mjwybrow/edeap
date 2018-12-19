@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="author" content="Peter Rodgers, P.J.Rodgers@kent.ac.uk">
+	<title>Euler Diagrams Drawn with Ellipses Area-Proportionally (Edeap)</title>
+	<script type="text/javascript" src="venneulerstress.js"></script>
+	<script type="text/javascript" src="ellipses.js"></script>
+	<script type="text/javascript" src="utils.js"></script>
+	<script type="text/javascript" src="optimizer.js"></script>
+	<link rel="stylesheet" type="text/css" href="edeap.css">
+	<link rel="stylesheet" type="text/css" href="tooltip.css">
+
+	<script type="text/javascript">
+
+	function init() {
+
+		let filePickerRef = document.getElementById('areaSpecFilePicker');
+
+		filePickerRef.addEventListener("change", function(event) {
+			let reader = new FileReader();
+
+			// Setup completion callback for FileReader object.
+			reader.onload = function(event) {
+
+				// Get the text from the file and show it in the outputArea div.
+				let fileText = event.target.result;
+				document.getElementById('areaSpecification').value = fileText;
+			};
+
+			// Tell the FileReader to start reading the file.
+			let file = event.target.files[0];
+			reader.readAsText(file);
+		});
+
+		// simple check for IE 8 or less
+		try {
+			var a = [1];
+			var b = a.indexOf[0];
+		} catch(err) {
+			document.write("Your web browser is not compatible with this web page. Please update your web browser to a later version or try a different one.");
+			return;
+		}
+
+		var date = new Date();
+
+		downloadName = "edeap-"+date.getMinutes()+date.getSeconds()+date.getMilliseconds();
+		var areaSpecificationText = gup('areaSpecification');
+		width = gup('width');
+		height = gup('height');
+		setLabels = gup('setLabels');
+		intersectionValues = gup('intersectionValues');
+		startingDiagram = gup('startingDiagram');
+		optimizationMethod = gup('optimizationMethod');
+
+		if (optimizationMethod === "")
+		{
+			optimizationMethod = HILL_CLIMBING;
+		}
+		else if (optimizationMethod === "1")
+		{
+			document.getElementById('optimizationHill').checked = true;
+			document.getElementById('optimizationSE').checked = false;
+			OPTIMSER = HILL_CLIMBING;
+		}
+		else {
+			document.getElementById('optimizationHill').checked = false;
+			document.getElementById('optimizationSE').checked = true;
+			OPTIMSER = SIMULATED_ANNEALING;
+		}
+
+		if (areaSpecificationText === '') { // default
+			areaSpecificationText = "pet+5%0D%0Amammal+32.7%0D%0Apet+mammal+12.1%0D%0Amammal+dog+21.7%0D%0Adog+mammal+pet+12.8"
+		}
+		canvasWidth = document.getElementById("ellipsesSVG").offsetWidth;
+		canvasHeight = document.getElementById("ellipsesSVG").offsetHeight;
+		if (width === "") {
+			document.getElementById("widthEntry").placeholder = canvasWidth;
+			width = canvasWidth;
+		} else {
+			document.getElementById("widthEntry").value = width;
+		}
+
+		if (height === "") {
+			document.getElementById("heightEntry").placeholder = canvasHeight;
+			height = canvasWidth;
+		} else {
+			document.getElementById("heightEntry").value = height;
+		}
+
+		if(setLabels === "off") {
+			document.getElementById('setLabelsOff').checked = true;
+			document.getElementById('setLabelsOn').checked = false;
+		} else {
+			document.getElementById('setLabelsOff').checked = false;
+			document.getElementById('setLabelsOn').checked = true;
+		}
+
+		if(intersectionValues === "off") {
+			document.getElementById('intersectionValuesOff').checked = true;
+			document.getElementById('intersectionValuesOn').checked = false;
+		} else {
+			document.getElementById('intersectionValuesOff').checked = false;
+			document.getElementById('intersectionValuesOn').checked = true;
+		}
+
+		if(startingDiagram === "random") {
+			document.getElementById('startingDefault').checked = false;
+			document.getElementById('startingRandom').checked = true;
+		} else {
+			document.getElementById('startingDefault').checked = true;
+			document.getElementById('startingRandom').checked = false;
+		}
+
+
+
+		setupGlobal(areaSpecificationText);
+
+		if(startingDiagram === "random") {
+			generateInitialRandomLayout(2,2);
+		} else {
+			generateInitialLayout();
+		}
+
+		globalLabelLengths = findLabelSizes().lengths;
+		globalValueLengths = findValueSizes().lengths;
+		globalValueHeights = findValueSizes().heights;
+
+
+
+		// reproducability logging code should go here
+
+
+		// reproducability logging
+		logMessage(logReproducability, "// paste this into the abstract description:");
+		logMessage(logReproducability, decodeAbstractDescription(areaSpecificationText));
+		logMessage(logReproducability, "// paste this in index.html just before the reproducability logging:");
+		for(i=0; i < ellipseParams.length;i++) {
+			logMessage(logReproducability, 'ellipseParams['+i+'] = {};');
+			logMessage(logReproducability, 'ellipseParams['+i+'].X = '+ellipseParams[i].X+';');
+			logMessage(logReproducability, 'ellipseParams['+i+'].Y = '+ellipseParams[i].Y+';');
+			logMessage(logReproducability, 'ellipseParams['+i+'].A = '+ellipseParams[i].A+';');
+			logMessage(logReproducability, 'ellipseParams['+i+'].B = '+ellipseParams[i].B+';');
+			logMessage(logReproducability, 'ellipseParams['+i+'].R = '+ellipseParams[i].R+';');
+			logMessage(logReproducability, 'ellipseLabel['+i+'] = \''+ellipseLabel[i]+'\';');
+		}
+
+
+		optimize();
+
+		var transformation = findTransformationToFit(canvasWidth, canvasHeight);
+		scaling = transformation.scaling;
+		translateX = transformation.translateX;
+		translateY = transformation.translateY;
+
+		document.getElementById('areaSpecification').innerHTML = decodeAbstractDescription(areaSpecificationText);
+
+		showSetLabels = true;
+		if(setLabels === "off") {
+			showSetLabels = false;
+		}
+
+		showIntersectionValues = true;
+		if(intersectionValues === "off") {
+			showIntersectionValues = false;
+		}
+
+
+		document.getElementById('ellipsesSVG').innerHTML = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
+
+		document.getElementById('downloadName').innerHTML = getDownloadName() + ".svg";
+
+	}
+
+
+	// downloadFileFromText function from:
+	// https://stackoverflow.com/questions/4845215/making-a-chrome-extension-download-a-file
+	function downloadFileFromText(filename, content) {
+	    var a = document.createElement('a');
+	    var blob = new Blob([ content ], {type : "text/plain;charset=UTF-8"});
+	    a.href = window.URL.createObjectURL(blob);
+	    a.download = filename;
+	    a.style.display = 'none';
+	    document.body.appendChild(a);
+	    a.click(); //this is probably the key - simulating a click on a download link
+	    delete a;// we don't need this anymore
+	}
+
+	function saveSVG() {
+	 	let transformation = findTransformationToFit(width, height);
+		let outputScaling = transformation.scaling;
+		let outputTranslateX = transformation.translateX;
+		let outputTranslateY = transformation.translateY;
+
+		let forDownload = true;
+		let svgString = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, outputTranslateX, outputTranslateY, outputScaling, undefined, forDownload);
+		downloadFileFromText(getDownloadName() + ".svg", svgString);
+	}
+
+	function saveAreaSpecification() {
+		let areaSpecificationString = document.getElementById('areaSpecification').value;
+		downloadFileFromText(getDownloadName() + ".txt", areaSpecificationString);
+	}
+
+	function getDownloadName() {
+		return downloadName;
+	}
+
+
+	function generateRandomDiagram() {
+		var maxContours = 5;
+		var maxZones = 10;
+		var maxZoneSize = 4;
+
+		var maxSize = 10;
+
+		var randomZones = generateRandomZones(maxContours,maxZones,maxZoneSize);
+
+		var adString = "";
+		for(var i = 0; i < randomZones.length; i++) {
+			var zoneList  = randomZones[i];
+			for(var j = 0; j < zoneList.length; j++) {
+				adString += zoneList[j]+" ";
+			}
+			adString += Math.floor(Math.random()*maxSize+1)+"\n";
+		}
+		document.getElementById('areaSpecification').value = adString;
+
+	}
+
+
+	</script>
+
+
+</head>
+
+<body onload="init();">
+	<h2 class="header">Euler Diagrams Drawn with Ellipses Area-Proportionally (Edeap)</h2>
+
+	<noscript>&lt;h3&gt;Your browser has JavaScript disabled.&lt;/h3&gt;&lt;h3&gt;You must enable Javascript to be able to see this page properly.&lt;/h3&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;</noscript>
+
+
+	<div id="ellipsesSVG">
+		<svg>
+		</svg>
+	</div>
+
+	<div id="resultsInfo">
+		<div id="resultsInfoContent">
+			<div id="instructions">
+				<h3>Download diagram:<a class="tooltip leftoftable" style="float: right;" href="#"><b>← Help</b><span class="custom help"><img src="help.png" alt="Help" height="48" width="48">
+					<em>Download SVG</em>
+    				<p>Click on the button to download the image file <b id="downloadName"></b>. This can be edited using an SVG editor such as Inkscape. Inkscape will also allow the diagram to be saved as GIF, PNG, EPS and other formats.</p>
+					<p>This download facility only works with modern browers. If it fails for you, try using Google Chrome.</p>
+					</p>
+					</span></a></h3>
+				<input id="svgDownload" type="button" name="Download diagram as SVG" value="Download diagram as SVG" onclick="saveSVG();">
+
+				<div id="textLengthMeasure"></div>
+			</div>
+			<div id="instructions">
+				<h3>Diagram quality:<a class="tooltip leftoftable" style="float: right;" href="#"><b>← Help</b><span class="custom help"><img src="help.png" alt="Help" height="48" width="48">
+					<em>Diagram quality</em>
+    				<p>The table lists each region that is desired or present in the current diagram along with the desired and actual proportion of the total non-empty region area. The table updates during the layout process.</p>
+					<p>Table rows are one of three cases:</p>
+					<ul>
+						<li>Black: Desired, present regions.</li>
+						<li>Orange: Desired, missing regions.</li>
+						<li>Red: Undesired, present regions.</li>
+					</ul>
+					<p>The total area difference is a measure of diagram quality. The lower the value, the better the diagram matches the area specification.  A value of zero means the diagram exactly matches the area specification.  Note: This value is built by summing proportion differences but it can be larger than 100 due to counting both missing, desired regions and present, undesired regions.</p>
+					</p>
+					<p>The stress value is another measure of diagram quality, used previously by the venneuler system.  The lower the value the better the diagram matches the area specification.  A value of zero means the diagram exactly matches the area specification.
+					</p>
+					</span></a></h3>
+				<div id="resultsTableContent">
+				<table id="areaTable" class="areaTable">
+					<thead>
+						<tr>
+							<th width="49%"></th>
+							<th colspan="3" width="51%">Area proportion (%)</th>
+						</tr>
+						<tr>
+							<th width="49%">Region</th>
+							<th width="17%">Desired</th>
+							<th width="17%">Actual</th>
+							<th width="17%">Diff</th>
+						</tr>
+					</thead>
+					<tbody id="areaTableBody">
+					</tbody>
+				</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+<div id="controls">
+<form method="get" target="_self" style="clear: both;">
+<table cellspacing="10px" class="controlpanels">
+	<tbody><tr>
+		<td class="panel">
+				<h3>Area specification:  <a class="tooltip abovecenter" style="float: right;" href="#">← Help<span class="custom help"><img src="help.png" alt="Help" height="48" width="48">
+					<em>Area specification</em>
+    				<p>Enter the sets that intersect on each line, separated by spaces. The last entry on the line should be a number indicating the size of the intersection.</p>
+					<p>The area specification can be downloaded as a text file, or loaded from a text file in the same format.</p>
+					</span></a>
+				</h3>
+				<textarea name="areaSpecification" id="areaSpecification" cols="40" rows="7">
+				</textarea>
+				<br />
+				<input id="areaSpecDownload" type="button" name="Download area specification" value="Download to file" onclick="saveAreaSpecification();" />
+				<input id="areaSpecFilePicker" type="file"  style="display: none;" />
+				<input id="areaSpecLoad" type="button" name="Load area specification" value="Load from file" onclick="document.getElementById('areaSpecFilePicker').click();" />
+				<span class="developer">
+					<input type="button" value="Random Area Specification" onclick="generateRandomDiagram();">
+				</span>
+		</td>
+		<td class="panel" width="260px;">
+				<h3>Edeap controls:</h3>
+				<table>
+					<tbody><tr>
+						<td>
+							Diagram width: <br>
+							Diagram height: <br>
+							<br />
+							Set labels: <br>
+							Intersection values: <br>
+							<span class="developer">
+								[DEV] Optimization method: <br>
+								[DEV] Starting diagram: <br>
+							</span
+						</td>
+						<td>
+							<input type="text" id="widthEntry" name="width" size="6" value="" placeholder="500"> px<br>
+							<input type="text" id="heightEntry" name="height" size="6" value="" placeholder="500"> px<br>
+							<br />
+							<input type="radio" id="setLabelsOn" name="setLabels" value="on"><label for="setLabelsOn"> Show</label> &nbsp;
+							<input type="radio" id="setLabelsOff" name="setLabels" value="off"><label for="setLabelsOff"> Hide</label><br>
+							<input type="radio" id="intersectionValuesOn" name="intersectionValues" value="on"><label for="intersectionValuesOn"> Show</label> &nbsp;
+							<input type="radio" id="intersectionValuesOff" name="intersectionValues" value="off"><label for="intersectionValuesOff"> Hide</label><br>
+							<span class="developer">
+								<input type="radio" id="optimizationHill" name="optimizationMethod" value="1" checked="checked"><label for="optimizationHill"> Hill Climbing</label> &nbsp;
+								<input type="radio" id="optimizationSE" name="optimizationMethod" value="2"><label for="optimizationSE"> Simulated Annealing</label><br>
+								<input type="radio" id="startingDefault" name="startingDiagram" value="default" checked="checked"><label for="startingDefault"> Default</label> &nbsp;
+								<input type="radio" id="startingRandom" name="startingDiagram" value="random"><label for="startingRandom"> Random Layout</label><br>
+							</span>
+						</td>
+					</tr>
+				</tbody></table>
+				<input type="submit" value="Draw Diagram">
+		</td>
+		<td class="panel">
+				<h3>About:</h3>
+				<div class="scrollablecontent">
+				<small>
+					<p>
+					Edeap is a collaboration between</p>
+					<ul>
+						<li><a href="http://www.cs.kent.ac.uk/people/staff/pjr/">Peter Rodgers</a> (University of Kent, UK),
+						<li><a href="http://users.monash.edu/~mwybrow/">Michael Wybrow</a> (Monash University, Australia)
+						<li><a href="https://www.gust.edu.kw/content/faculty_publication?name=Deeb.F#/">Fadi Dib</a> (Gulf University for Science and Technology, Kuwait)</p>
+					</ul>
+					<p>Contact: <a href="mailto:P.J.Rodgers@kent.ac.uk">Peter Rodgers</a>
+					</p>
+
+					<p><a href="https://github.com/mjwybrow/edeap">Edeap GitHub repository</a>.</p>
+
+					<p><b>Acknowledgements:</b></p>
+					<p>The genesis and planning of this work took place at the Dagstuhl Seminar #17332, &quot;Scalable Set Visualizations&quot; held in August 2017.</p>
+					<p>Michael Wybrow was supported by the Australian Research Council Discovery Project grant DP140100077.</p>
+
+					<p><b>Licence:</b></p>
+					<p>This tool is free software: you can redistribute it and/or modify
+				    it under the terms of the GNU General Public License as published by
+				    the Free Software Foundation, either version 3 of the License, or
+				    (at your option) any later version.</p>
+				    <p>This program is distributed in the hope that it will be useful,
+				    but WITHOUT ANY WARRANTY; without even the implied warranty of
+				    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+				    <a href="http://www.gnu.org/licenses/gpl.html">GNU General Public
+					License v3 or later as published by the Free Software Foundation</a>. A local copy of <a href="COPYING.txt">the licence</a>.</p>
+				</small>
+			</div>
+		</td>
+	</tr>
+</tbody></table>
+</form>
+</div>
+</body></html>

@@ -1,0 +1,12 @@
+News 17
+Journalism 2
+Computers 1
+Computers Hifi 4
+Food 10
+Food Relaxation 2
+Stars 5
+Hifi 15
+Travel 2
+Web 4
+Relaxation 56
+Music 11

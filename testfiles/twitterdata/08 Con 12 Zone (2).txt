@@ -1,0 +1,12 @@
+Stars 3
+Stars Movies 4
+Camping 11
+Movies 6
+Journalism 6
+Journalism Travel 2
+Journalism Games 2
+Health 25
+Health Games 8
+Games 5
+Relaxation 24
+Travel 9

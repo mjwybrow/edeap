@@ -1,0 +1,11 @@
+Books Design 10
+Health 6
+Health Media 22
+Health Computers 4
+Media Computers 14
+Media 3
+Programming 5
+Computers 12
+Computers Journalism 2
+Design 19
+Journalism 3

@@ -1,0 +1,25 @@
+Design 2
+Movies 1
+Movies News 2
+Movies Journalism 4
+iPhone 1
+iPhone Bands 2
+Technology 5
+Economics 6
+Economics News 4
+Economics Bands 2
+Journalism 2
+Journalism Web 4
+Journalism News 2
+Android News 2
+Android 14
+Android Web 2
+Computers News 2
+Computers 1
+Computers Web 4
+News 113
+News Web 2
+News Bands 2
+Web 6
+Bands 8
+Relaxation 4

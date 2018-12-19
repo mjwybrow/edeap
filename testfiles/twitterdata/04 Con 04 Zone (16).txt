@@ -1,0 +1,4 @@
+Bands 9
+Computers 8
+Travel 17
+Internet 17

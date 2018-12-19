@@ -1,0 +1,17 @@
+Arthritis 163
+Carditis 22
+Chorea 11
+Arthritis Carditis 106
+Arthritis Chorea 5
+Carditis Chorea 8
+Arthritis Carditis Chorea 15
+Carditis Severe_Carditis 22
+Carditis Arthralgia 32
+Chorea Arthralgia 2
+Arthritis Carditis Severe_Carditis 34
+Carditis Severe_Carditis Arthralgia 15
+Carditis Chorea Arthralgia 2
+Arthritis Carditis Chorea Severe_Carditis 3
+Carditis Chorea Severe_Carditis Arthralgia 1
+
+

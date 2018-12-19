@@ -1,0 +1,14 @@
+Journalism Books Cars Media 8
+Journalism Cars 2
+Relaxation Books Cars iPhone Media 10
+Relaxation Media 2
+Relaxation Books Cars Media 8
+Books Cars iPhone 3
+Books Cars Media 6
+Books Media 2
+Books iPhone Media 3
+Books Cars iPhone Media 8
+Cars 1
+Cars iPhone Media 6
+iPhone Media 8
+Media 12

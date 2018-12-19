@@ -1,0 +1,33 @@
+Travel Android 4
+Travel Stars Relaxation Android 4
+Travel 1
+Media 1
+Media Internet 2
+Economics Stars Android 3
+Economics Stars 6
+Economics Computers Android 3
+Economics Computers 2
+Economics Internet 2
+Web 1
+Web Computers 2
+Health Internet 6
+Health 1
+Computers Android 12
+Computers Internet 2
+Computers Bands Android 12
+Computers 19
+Computers Programming Android 3
+Computers Food 2
+Bands 10
+Bands Internet Food Relaxation 4
+Bands Relaxation Android 3
+Bands Android 8
+Internet Relaxation 2
+Internet Stars 2
+Internet 2
+Food Android 2
+Food 1
+Stars 6
+Relaxation 31
+Relaxation Android 2
+Android 1

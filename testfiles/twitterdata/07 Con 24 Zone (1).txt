@@ -1,0 +1,24 @@
+Journalism Books Food 9
+Journalism Books 2
+Journalism Computers 2
+Journalism Food 6
+Journalism Music 8
+Journalism Music Food 9
+Journalism 1
+Journalism Technology Books 6
+Journalism Technology Food 3
+Journalism Technology Books Music 4
+Journalism Hifi 2
+Technology 5
+Technology Books 8
+Technology Music 10
+Technology Music Food 3
+Technology Books Music 3
+Hifi 3
+Hifi Music 2
+Computers Books 4
+Books 15
+Books Music 2
+Music 15
+Music Food 8
+Food 2

@@ -1,0 +1,18 @@
+Books Journalism 10
+Books Food 22
+Books 6
+Books Camping Media Journalism 8
+Books Android 2
+Books Camping Food 3
+Books Hifi 2
+Camping Android 2
+Camping Relaxation 4
+Camping Journalism 2
+Camping Web Media Relaxation 12
+Camping Media Relaxation 9
+Android 3
+Media Relaxation 2
+Journalism 1
+Economics Relaxation 2
+Relaxation 30
+Food 2

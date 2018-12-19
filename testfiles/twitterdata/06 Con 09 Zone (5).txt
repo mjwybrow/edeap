@@ -1,0 +1,9 @@
+News 13
+News Music 2
+Programming Music 4
+Economics 6
+Economics Music 4
+Economics Bands 2
+Bands Music 20
+Music 40
+Relaxation 1

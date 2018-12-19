@@ -1,0 +1,9 @@
+Bands 4
+Health 3
+Health News 6
+News Food 4
+News Web 2
+News 2
+News Food Web 3
+Food 2
+Web 16

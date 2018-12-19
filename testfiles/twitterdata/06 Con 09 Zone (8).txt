@@ -1,0 +1,9 @@
+Travel 3
+Travel Computers 2
+Health Stars 2
+Health 4
+Computers 4
+Computers News 2
+News 1
+Stars 10
+Stars Programming 2

@@ -1,0 +1,12 @@
+Books 4
+Books Journalism News 3
+Books Journalism 8
+Books News 2
+Books Technology 2
+Books Journalism News Technology 4
+Books News Technology 3
+Journalism 14
+Journalism Technology 12
+Journalism News 2
+News 3
+Technology 5

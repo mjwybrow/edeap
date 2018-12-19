@@ -1,0 +1,26 @@
+e13 7
+e3 9
+e5 9
+e6 8
+e8 9
+e9 2
+e1 e11 7
+e1 e3 1
+e10 e11 9
+e10 e7 6
+e2 e4 3
+e1 e11 e4 5
+e1 e6 e8 9
+e10 e11 e8 7
+e10 e13 e3 6
+e10 e2 e9 9
+e10 e6 e8 9
+e10 e7 e8 2
+e11 e12 e5 2
+e12 e13 e4 4
+e2 e4 e5 9
+e1 e2 e3 e6 10
+e10 e4 e7 e9 5
+e11 e12 e4 e6 5
+e2 e3 e4 e8 5
+e4 e6 e8 e9 6
