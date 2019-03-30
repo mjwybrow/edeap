@@ -114,6 +114,7 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 		}
 
 
+
 	}
 
 
@@ -139,6 +140,44 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 			//x = x+increment;
 		}
 
+		// Check for ellipses that must be the same:
+	    ellipseDuplication = [];
+	    duplicatedEllipseIndexes = [];
+	    ellipseEquivilenceSet = [];
+	    let ellipseEquivilenceSetCount = 0;
+	    for (let indexA = 0; indexA < ellipseLabel.length; ++indexA)
+	    {
+	        if (ellipseDuplication[indexA] != undefined) {
+	            // Already processed.
+	            continue;
+	        }
+
+	        let count = 1;
+	        let zonesWithA = globalZones.filter(function(element) { return element.includes(ellipseLabel[indexA]); }).join("#");
+	        for (let indexB = indexA + 1; indexB < ellipseLabel.length; ++indexB)
+	        {
+	            let zonesWithB = globalZones.filter(function(element) { return element.includes(ellipseLabel[indexB]); }).join("#");
+	            if (zonesWithA === zonesWithB)
+	            {
+	                if (typeof ellipseEquivilenceSet[zonesWithA] === 'undefined')
+	                {
+	                    ellipseEquivilenceSetCount++;
+	                    console.log("Eqivalence set " + ellipseEquivilenceSetCount);
+	                    ellipseEquivilenceSet[zonesWithA] = ellipseEquivilenceSetCount;
+	                    console.log(" -- " + ellipseLabel[indexA]);
+	                }
+	                ellipseEquivilenceSet[zonesWithB] = ellipseEquivilenceSetCount;
+	                console.log(" -- " + ellipseLabel[indexB]);
+
+	                // Set ellipse B as a duplicate of ellipse A
+	                ellipseParams[indexB] = ellipseParams[indexA];
+	                duplicatedEllipseIndexes.push(indexB);
+
+	                count++;
+	                ellipseDuplication[indexB] = count;
+	            }
+	        }
+	    }
 	}
 
 	function generateInitialRandomLayout(maxX,maxY) {
@@ -182,6 +221,61 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 	}
 
 
+	function distanceBetweenNodes(node1, node2)
+	{
+        let xDifferenceSquared = Math.pow(node1.x - node2.x, 2);
+        let yDifferenceSquared = Math.pow(node1.y - node2.y, 2);
+
+        let sumOfSquaredDifferences = xDifferenceSquared +
+                yDifferenceSquared;
+
+        let distance = Math.sqrt(sumOfSquaredDifferences);
+
+        return distance;
+	}
+
+	function ellipseBoundaryPosition(eA, eB, eR, angleRad)
+	{
+		let divisor = Math.sqrt(Math.pow(eB * Math.cos(angleRad), 2) + Math.pow(eA * Math.sin(angleRad), 2))
+		let y = (eA * eB * Math.sin(angleRad)) / divisor;
+		let x = (eA * eB * Math.cos(angleRad)) / divisor;
+
+		/*
+		let x = (eA * eB) / Math.sqrt(Math.pow(eB, 2) + Math.pow(eA, 2) * Math.pow(Math.tan(angleRad), 2));
+		if (angleRad < Math.PI * 1.5 && angleRad >= Math.PI/2)
+		{
+			x *= -1;
+		}
+		let y = Math.sqrt(1 - Math.pow(x/eA, 2)) * eB;
+		if (angleRad < Math.PI)
+		{
+			y *= -1;
+		}
+		if (isNaN(x)) {
+			console.log("NAN X: " + eA + ", " + eB + ", " + eR);
+		}
+		if (isNaN(y)) {
+			console.log("NAN X: " + eA + ", " + eB + ", " + eR);
+		}
+		*/
+
+		if (eR > 0) {
+			let s = Math.sin(eR);
+			let c = Math.cos(eR);
+
+
+			let newX = x * c - y * s;
+			let newY = x * s + y * c;
+
+			x = newX;
+			y = newY;
+		}
+
+		return {
+			x,
+			y
+		};
+	}
 
 	// generate svg from ellipses
 	function generateSVG(width, height, setLabels, intersectionValues, translateX, translateY, scaling, areas, forDownload) {
@@ -203,7 +297,8 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 
 		svgString += '<svg width="'+width+'" height="'+height+'" xmlns="http://www.w3.org/2000/svg">\n';
 
-		for(var i=0; i < areas.ellipseLabel.length; i++) {
+		const N = areas.ellipseLabel.length;
+		for (var i=0; i < N; i++) {
 			var color = findColor(i);
 			var eX = (areas.ellipseParams[i].X+translateX)*scaling;
 			var eY = (areas.ellipseParams[i].Y+translateY)*scaling;
@@ -211,18 +306,216 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 			var eB = areas.ellipseParams[i].B*scaling;
 
 			var eR = areas.ellipseParams[i].R.toDegrees();
-			nextSVG ='<ellipse cx="'+eX+'" cy="'+eY+'" rx="'+eA+'" ry="'+eB+'" fill="none" stroke="'+color+'" stroke-width="'+2+'" transform="rotate('+eR+' '+eX+' '+eY+' '+')" />'+"\n";
+			nextSVG ='<ellipse cx="'+eX+'" cy="'+eY+'" rx="'+eA+'" ry="'+eB+'" fill="' + color +'" fill-opacity="0.075" stroke="'+color+'" stroke-width="'+2+'" transform="rotate('+eR+' '+eX+' '+eY+' '+')" />'+"\n";
 			svgString += nextSVG;
-			if(setLabels) {
+		}
+
+		if (setLabels) {
+			const LABEL_DEBUGGING = false;
+
+			// Find positions for ellipses, one at a time.
+			let angleRange = Math.PI * 2;
+			let ranges = [];
+			for (var i=0; i < N; i++) {
+				var color = findColor(i);
+
+				var eX = (areas.ellipseParams[i].X+translateX)*scaling;
+				var eY = (areas.ellipseParams[i].Y+translateY)*scaling;
+				var eA = areas.ellipseParams[i].A*scaling;
+				var eB = areas.ellipseParams[i].B*scaling;
+				let eR = areas.ellipseParams[i].R
+
+				let minDepth = Number.MAX_SAFE_INTEGER;
+				let maxDepth = 0;
+
+				// Compute the depth of each boundary point (i.e., how many
+			    // other ellipses it is within.)
+				var ellipseRanges = [];
+				var currentRange = null;
+				ranges[i] = ellipseRanges;
+				for (let angle = 0; angle < 360; angle += 10) {
+					let angleRad = angle.toRadians();
+					let {x, y} = ellipseBoundaryPosition(eA, eB, eR, angleRad);
+
+					let isIn = 0;
+					let nearestPoint = Number.MAX_SAFE_INTEGER;
+					for (var j=0; j < N; j++) {
+						if (i === j) {
+							continue;
+						}
+
+						var jX = (areas.ellipseParams[j].X+translateX)*scaling;
+						var jY = (areas.ellipseParams[j].Y+translateY)*scaling;
+						var jA = areas.ellipseParams[j].A*scaling;
+						var jB = areas.ellipseParams[j].B*scaling;
+						let jR = areas.ellipseParams[j].R
+
+						if (isInEllipse((x + eX), (y + eY), jX, jY, jA, jB, jR)) {
+							isIn++;
+						}
+
+						for (let jAngle = 0; jAngle < 360; jAngle += 10) {
+							let jAngleRad = jAngle.toRadians();
+							let {x: jBX, y: jBY} = ellipseBoundaryPosition(jA, jB, jR, jAngleRad);
+
+							let distance = distanceBetweenNodes({x: (jX + jBX), y: (jY + jBY)}, {x: (eX + x), y: (eY + y)})
+
+							nearestPoint = Math.min(distance, nearestPoint);
+						}
+					}
+					minDepth = Math.min(minDepth, isIn);
+					maxDepth = Math.max(maxDepth, isIn);
+
+					let tooClose = nearestPoint < 11;
+					if (!tooClose) {
+						if (currentRange == null || currentRange[0].depth != isIn) {
+							// Start a new range.
+							currentRange = [];
+							ellipseRanges.push(currentRange);
+						}
+						// Add point to the existing range.
+						currentRange.push({
+							angle: angle,
+							depth: isIn,
+							x: (x + eX),
+							y: (y + eY),
+							distanceToNearest: nearestPoint
+						});
+					}
+					else {
+						// End the current range.
+						if (currentRange != null) {
+							currentRange = null
+						}
+					}
+
+					if (LABEL_DEBUGGING) {
+						let intensity = 255 - (255 / (maxDepth - minDepth) * isIn);
+						let dotColour = (tooClose ? "orange" : "rgb(" + intensity + ", " + intensity + ", " + intensity + ")");
+						nextSVG ='<circle cx="'+(x + eX) +'" cy="'+(y + eY)+'" r="4" stroke-width="1" stroke="black" fill="' + dotColour + '" />'+"\n";
+						svgString += nextSVG;
+					}
+				}
+			}
+
+			for (var i=0; i < N; i++) {
+				let ellipseRanges = ranges[i];
+
+				var eX = (areas.ellipseParams[i].X+translateX)*scaling;
+				var eY = (areas.ellipseParams[i].Y+translateY)*scaling;
+				var eA = areas.ellipseParams[i].A*scaling;
+				var eB = areas.ellipseParams[i].B*scaling;
+				let eR = areas.ellipseParams[i].R
+
+				let ellipseRangesN = ellipseRanges.length;
+				if (ellipseRangesN >= 2) {
+					// Check for wrap around. Two ranges around zero.
+					if (ellipseRanges[0][0].angle == 0 && ellipseRanges[ellipseRangesN - 1][ellipseRanges[ellipseRangesN - 1].length - 1].angle == 350)
+					{
+						// Join them together.
+						for (let j=0; j < ellipseRanges[0].length; j++) {
+							ellipseRanges[0][j].angle += 360;
+							ellipseRanges[ellipseRangesN - 1].push(ellipseRanges[0][j])
+						}
+						ellipseRanges.shift();
+					}
+				}
+
+				// Sort the ranges by depth (lowest first) and secondarily
+				// by length (highest first).
+				ellipseRanges.sort(function(a, b) {
+					if (a[0].depth != b[0].depth) {
+						return a[0].depth - b[0].depth;
+					}
+					return b.length - a.length;
+				});
+				for (let j=0; j < ellipseRanges.length; j++) {
+					let range = ellipseRanges[j];
+				}
+
+				let spacingFromEdge = 8;
+
+				// Take the first range, it will be the best.
+				let range = ellipseRanges[0];
+
+				let angle;
+				if (ellipseRanges.length == 0) {
+					// At top for if no valid regions.
+					angle = 270;
+				}
+				else if (range[0].angle == 0 && range[range.length - 1].angle == 350 && range[26].distanceToNearest >= 50) {
+					// At top for full circle, or if no valid range.
+					angle = 270;
+				}
+				else {
+					// Take point furthest away from others.
+					range.sort(function(a, b) {
+						return b.distanceToNearest - a.distanceToNearest;
+					});
+					angle = range[0].angle;
+				}
+
+				if (ellipseDuplication[i] !== undefined) {
+					angle -= (15 * (ellipseDuplication[i] - 1));
+				}
+
+				eA += spacingFromEdge;
+				eB += spacingFromEdge;
+
+				let angleRad = angle.toRadians();
+				let {x, y} = ellipseBoundaryPosition(eA, eB, eR, angleRad);
+
+				var textWidth = areas.globalLabelLengths[i];
+				var textHeight = 15;
+
+				if (LABEL_DEBUGGING) {
+					nextSVG ='<circle cx="'+(x + eX) +'" cy="'+(y + eY)+'" r="5" stroke-width="1" stroke="black" fill="red" />'+"\n";
+					svgString += nextSVG;
+				}
+
+				let halfWidth = (textWidth) / 2;
+				let halfHeight = (textHeight) / 2;
+				let finalLabelAngle = (angle + eR.toDegrees()) % 360;
+				let quarterAngle = finalLabelAngle % 90;
+
+				// Shift the label to allow for the label length.
+				if (finalLabelAngle === 0) {
+					x += halfWidth;
+				}
+				else if (finalLabelAngle === 90) {
+					y += halfHeight;
+				}
+				else if (finalLabelAngle === 180) {
+					x -= halfWidth;
+				}
+				else if (finalLabelAngle === 270) {
+					y -= halfHeight;
+				}
+				else if (finalLabelAngle > 0 && finalLabelAngle < 90) {
+					x += halfWidth;
+					y += halfHeight;
+				}
+				else if (finalLabelAngle > 90 && finalLabelAngle < 180) {
+					x -= halfWidth;
+					y += halfHeight;
+				}
+				else if (finalLabelAngle > 180 && finalLabelAngle < 270) {
+					x -= halfWidth;
+					y -= halfHeight;
+				}
+				else if (finalLabelAngle > 270 && finalLabelAngle < 360) {
+					x += halfWidth;
+					y -= halfHeight;
+				}
+
 				var textLength = areas.globalLabelLengths[i];
-				var textX = eX-textLength/2;
-				var textY = eY-(eB+5);
-				nextSVG ='<text x="'+textX+'" y="'+textY+'" fill="'+color+'">'+areas.ellipseLabel[i]+'</text>'+"\n";
+				var color = findColor(i);
+				nextSVG ='<text style="dominant-baseline: central; font-family: Helvetica; font-size: 12pt;" x="'+((x + eX) - textWidth / 2) +'" y="'+(y + eY) +'" fill="'+color+'">'+areas.ellipseLabel[i]+'</text>'+"\n";
 				svgString += nextSVG;
 			}
 		}
 
-		if(intersectionValues) {
+		if (intersectionValues) {
 			var generateLabelPositions = true;
 			// Higher sample size for better label positioning.
 			var sampleSize = 300;
@@ -240,7 +533,7 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 					labelX = labelX-textLength/2;
 					labelY = labelY;
 					if(!isNaN(labelX)) {
-						nextSVG ='<text x="'+labelX+'" y="'+labelY+'" style="dominant-baseline: central;" fill="black">'+areas.globalOriginalProportions[i]+'</text>'+"\n";
+						nextSVG ='<text x="'+labelX+'" y="'+labelY+'" style="dominant-baseline: central; font-family: Helvetica; font-size: 12pt;" fill="black">'+areas.globalOriginalProportions[i]+'</text>'+"\n";
 						svgString += nextSVG;
 					}
 
@@ -254,7 +547,7 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 	}
 
 
-		/**
+	/**
 	 * This returns a transformation to fit the diagram in the given size
 	 */
 	function findTransformationToFit(width,height, areas) {
@@ -263,18 +556,21 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 			areas = new EdeapAreas();
 		}
 
-		canvasHeight = parseInt(height);
 		canvasWidth = parseInt(width);
+		canvasHeight = parseInt(height);
 
-		// 12 is font padding, plus 2 percent of smaller of two dimensions.
-		var padding = 12 + Math.min(canvasWidth, canvasHeight) * 0.02;
+		let sizes = findLabelSizes();
+		let idealWidth = canvasWidth - 15 - sizes.maxWidth * 2;
+		let idealHeight = canvasHeight - 15 - sizes.maxHeight* 2;
 
-		var desiredCentreX = canvasWidth/2-padding;
-		var desiredCentreY = canvasHeight/2-padding;
-		var desiredHeight = canvasHeight-padding*2;
-		var desiredWidth = canvasWidth-padding*2;
+		var desiredCentreX = idealWidth/2;
+		var desiredWidth = idealWidth;
+
+		var desiredCentreY = idealHeight/2;
+		var desiredHeight = idealHeight;
 
 		var compute = areas.computeAreasAndBoundingBoxesFromEllipses();
+
 
 		var currentWidth = compute.overallBoundingBox.p2.x-compute.overallBoundingBox.p1.x;
 		var currentHeight = compute.overallBoundingBox.p2.y-compute.overallBoundingBox.p1.y;
@@ -882,7 +1178,7 @@ console.log("timed out after "+(currentTime-start)/1000+" seconds. Permutation c
 
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 		let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        //Object.assign(text.style, style);
+        text.setAttribute("style", "dominant-baseline: central; font-family: Helvetica; font-size: 12pt;");
 		svg.appendChild(text);
 		document.getElementById('textLengthMeasure').appendChild(svg);
 
@@ -890,6 +1186,8 @@ console.log("timed out after "+(currentTime-start)/1000+" seconds. Permutation c
 
 		var lengths = new Array();
 		var heights = new Array();
+		let maxHeight = 0;
+		let maxWidth = 0;
 		for(var i=0; i < ellipseLabel.length; i++) {
 			var label = ellipseLabel[i];
 
@@ -897,11 +1195,15 @@ console.log("timed out after "+(currentTime-start)/1000+" seconds. Permutation c
 
 			lengths[i] = text.getComputedTextLength();
 			heights[i] = text.getBBox().height;
+			maxHeight = Math.max(maxHeight, heights[i]);
+			maxWidth = Math.max(maxWidth, lengths[i]);
 		}
 		document.getElementById('textLengthMeasure').innerHTML = ""; // clear the div
 		return {
-			lengths : lengths,
-			heights: heights
+			lengths,
+			heights,
+			maxHeight,
+			maxWidth
 		};
 	}
 

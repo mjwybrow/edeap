@@ -9,6 +9,7 @@ body {
 h2.header {
     display: inline-block;
     margin-top: 0px;
+    margin-bottom: 0px;
     padding: 12px;
     border-bottom: 1px solid grey;
     border-right: 1px solid grey;
@@ -29,7 +30,7 @@ p + ul {
 
 #ellipsesSVG {
     width: calc(100vw - 390px);
-    height: calc(100vh - 236px);
+    height: calc(100vh - 222px);
     position: absolute;
 
     z-index: -1;
@@ -38,7 +39,7 @@ p + ul {
 
 #resultsInfo {
     position: absolute;
-    top: 75px;
+    top: 50px;
     right: 0px;
     padding-right: 15px;
     font-size: 10pt;
@@ -146,4 +147,9 @@ a.tooltip {
 
 .areaTable td.missing {
     color: orange;
+}
+
+.diagramColumn img {
+    width: 350px;
+    height: 350px;
 }

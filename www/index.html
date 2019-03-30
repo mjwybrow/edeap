@@ -241,10 +241,19 @@
 	<noscript>&lt;h3&gt;Your browser has JavaScript disabled.&lt;/h3&gt;&lt;h3&gt;You must enable Javascript to be able to see this page properly.&lt;/h3&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;</noscript>
 
 
+	<div class="dialog" id="browserError" style="display: none;">
+	<span class="critical"><img src="critical.png" alt="Critical Error" height="48" width="48">
+					<em>Incompatible Browser</em>
+    				<p>Internet Explorer is not supported. Please use a modern browser such as Google Chrome, Apple Safari or Microsoft Edge.</p>
+					<p></p>
+	</span>
+	</div>
+
 	<div id="ellipsesSVG">
 		<svg>
 		</svg>
 	</div>
+
 
 	<div id="resultsInfo">
 		<div id="resultsInfoContent">
@@ -388,4 +397,21 @@
 </tbody></table>
 </form>
 </div>
+<script type="text/javascript">
+
+function isInternetExplorer() {
+  var ua = navigator.userAgent;
+  /* MSIE used to detect old browsers and Trident used to newer ones*/
+  var is_ie = ua.indexOf("MSIE ") > -1 || ua.indexOf("Trident/") > -1;
+
+  return is_ie;
+}
+
+if (isInternetExplorer())
+{
+	var browserError = document.getElementById("browserError");
+	browserError.style.display = "block";
+}
+
+</script>
 </body></html>

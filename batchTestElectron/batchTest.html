@@ -47,6 +47,8 @@
 	// Time limit for venneuler and eulerr
 	var timeLimitSec = 30 * 60; // 30 minutes
 
+	let canvasSize = 700 ;
+
 	function initBatch() {
 
 		// simple check for IE 8 or less
@@ -66,13 +68,13 @@
 		startingDiagram = gup('startingDiagram');
 
 		if(width === "") {
-			width = 300;
+			width = canvasSize;
 		} else {
 			document.getElementById("widthEntry").value = width;
 		}
 
 		if(height === "") {
-			height = 300;
+			height = canvasSize;
 		} else {
 			document.getElementById("heightEntry").value = height;
 		}
@@ -1004,8 +1006,8 @@
 		globalValueLengths = findValueSizes().lengths;
 		globalValueHeights = findValueSizes().heights;
 
-		var width = 300;
-		var height = 300;
+		var width = canvasSize;
+		var height = canvasSize;
 
 		var transformation = findTransformationToFit(width, height);
 		var scaling = transformation.scaling;

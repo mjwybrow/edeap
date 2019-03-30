@@ -18,7 +18,7 @@
 	display: none;
 
 }
-.tooltip:hover span {
+.tooltip:hover span, .dialog span {
 	border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
 	box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
 	font-family: Calibri, Tahoma, Geneva, sans-serif;
@@ -29,19 +29,20 @@
 	margin-left: 0;
     width: 250px;
     overflow: visible;
+	padding-left: 20px;
 }
-.tooltip:hover span p, .tooltip:link span p {
+.tooltip:hover span p, .tooltip:link span p, .dialog span p {
 	color: black;
 	text-decoration: none;
 	font-weight: normal;
 	padding-left: 0px;
 	font-size: 14px;
 }
-.tooltip:hover img {
+.tooltip:hover img, .dialog img {
 	border: 0; margin: -10px 0 0 -55px;
 	float: left; position: absolute;
 }
-.tooltip:hover em {
+.tooltip:hover em, .dialog em {
 	font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
 	display: block; padding: 0.2em 0 0.6em 0;
     font-style: normal;
@@ -63,3 +64,9 @@
 .help { background: #9FDAEE; border: 1px solid #2BB0D7;	}
 .info { background: #9FDAEE; border: 1px solid #2BB0D7;	}
 .warning { background: #FFFFAA; border: 1px solid #FFAD33; }
+
+.dialog span {
+ 	display: relative;
+	left: 100px;
+	top: 100px;
+}

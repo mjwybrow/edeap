@@ -6,6 +6,8 @@ const PI = Math.PI;
 
 var ellipseEquivilenceSet = [];
 var duplicatedEllipseIndexes = [];
+// if set fo an index, indicates the number of this ellipse as a duplicate.
+var ellipseDuplication = [];
 
 var move = [];   // array to track the fitness value computed at each move
 var currentFitness; // the value of the current computed fitness
@@ -71,34 +73,6 @@ function optimize(completionHandler)
     currentAnnealingIteration = 0;
     currentTemperatureIteration = 0;
 
-    // Check for ellipses that must be the same:
-    duplicatedEllipseIndexes = [];
-    ellipseEquivilenceSet = [];
-    let ellipseEquivilenceSetCount = 0;
-    for (let indexA = 0; indexA < ellipseLabel.length; ++indexA)
-    {
-        let zonesWithA = globalZones.filter(function(element) { return element.includes(ellipseLabel[indexA]); }).join("#");
-        for (let indexB = indexA + 1; indexB < ellipseLabel.length; ++indexB)
-        {
-            let zonesWithB = globalZones.filter(function(element) { return element.includes(ellipseLabel[indexB]); }).join("#");
-            if (zonesWithA === zonesWithB)
-            {
-                if (typeof ellipseEquivilenceSet[zonesWithA] === 'undefined')
-                {
-                    ellipseEquivilenceSetCount++;
-                    //console.log("Eqivalence set " + ellipseEquivilenceSetCount);
-                    ellipseEquivilenceSet[zonesWithA] = ellipseEquivilenceSetCount;
-                    //console.log(" -- " + ellipseLabel[indexA]);
-                }
-                ellipseEquivilenceSet[zonesWithB] = ellipseEquivilenceSetCount;
-                //console.log(" -- " + ellipseLabel[indexB]);
-
-                // Set ellipse B as a duplicate of ellipse A
-                ellipseParams[indexB] = ellipseParams[indexA];
-                duplicatedEllipseIndexes.push(indexB);
-            }
-        }
-    }
 
     currentFitness = computeFitness();
     for (var elp = 0; elp < ellipseLabel.length; elp++)  // for each ellipse
@@ -179,7 +153,7 @@ function optimizeStep(opt)
 
 		      logMessage(logOptimizerStep, "Fitness %s", currentFitness);
 			  printEllipseInfo(bestMoveEllipse);
-			  document.getElementById('ellipsesSVG').innerHTML = generateSVG(canvasWidth, canvasHeight, showSetLabels, false, translateX, translateY, scaling);
+			  document.getElementById('ellipsesSVG').innerHTML = generateSVG(canvasWidth, canvasHeight, false, false, translateX, translateY, scaling);
 
 			  let tbody = areas.zoneAreaTableBody();
               document.getElementById('areaTableBody').innerHTML = tbody;
@@ -264,7 +238,7 @@ function optimizeStep(opt)
                {
                    logMessage(logOptimizerStep, "Fitness %s", currentFitness);
                    printEllipseInfo(bestMoveEllipse);
-                   document.getElementById('ellipsesSVG').innerHTML = generateSVG(canvasWidth, canvasHeight, showSetLabels, false, translateX, translateY, scaling, areas);
+                   document.getElementById('ellipsesSVG').innerHTML = generateSVG(canvasWidth, canvasHeight, false, false, translateX, translateY, scaling, areas);
                    document.getElementById('areaTableBody').innerHTML = areas.zoneAreaTableBody();
                }
             } // if no move is taken
@@ -316,7 +290,7 @@ function optimizeStep(opt)
     var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
     document.getElementById('ellipsesSVG').innerHTML = svgText;
 
-    if (animateOptimizer)
+    if (animateOptimizer && progress)
     {
         progress.value = progress.max;
     }
