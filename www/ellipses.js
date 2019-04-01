@@ -460,7 +460,7 @@ class EdeapAreas
             }
             let bitmap = zoneBitmaps[zone];
 
-            // Scan the bitmap of points withing this zone in order to determine
+            // Scan the bitmap of points within this zone in order to determine
             // the number of disconnected fragments.  We do this by flood-filling
             // with the fillFragment function on the zoneFragmentMap array. After
             // this process zoneFragmentSizes will hold the size in sampled points
@@ -535,6 +535,28 @@ class EdeapAreas
 
             if (generateLabelPositions)
             {
+                function isInRegion(x, y) {
+                    let index = (y * bitmapSizeX) + x;
+                    if (index >= 0 && index < length)
+                    {
+                        return (bitmap[index]) ? 1 : 0;
+                    }
+                    return 0;
+                }
+
+                function pointFreedomCount(x, y) {
+                    let neighbourCount = 0;
+                    neighbourCount += isInRegion(x, y);
+                    if (neighbourCount === 0) {
+                        return 0;
+                    }
+                    neighbourCount += isInRegion(x - 1, y);
+                    neighbourCount += isInRegion(x + 1, y);
+                    neighbourCount += isInRegion(x, y - 1);
+                    neighbourCount += isInRegion(x, y + 1);
+                    return neighbourCount;
+                }
+
                 var centreX = Math.floor((zoneAvgPos[zone].x - oversizedBB.p1.x) / areaSampleStep);
                 var centreY = Math.floor((zoneAvgPos[zone].y - oversizedBB.p1.y) / areaSampleStep);
 
@@ -542,6 +564,23 @@ class EdeapAreas
                 {
                     x = centreX;
                     y = centreY;
+                }
+
+                // If the candidate point doesn't have freedom on all sides,
+                // try and pick one that does.
+                if (pointFreedomCount(x, y) < 5) {
+                    let freePoint = null;
+                    for (let ty = 0; ty < bitmapSizeY && !freePoint; ty++) {
+                        for (let tx = 0; tx < bitmapSizeX && !freePoint; tx++) {
+                            if (pointFreedomCount(tx, ty) === 5) {
+                                freePoint = {x: tx, y: ty};
+                            }
+                        }
+                    }
+                    if (freePoint) {
+                        x = freePoint.x;
+                        y = freePoint.y;
+                    }
                 }
 
                 var movement = true;
