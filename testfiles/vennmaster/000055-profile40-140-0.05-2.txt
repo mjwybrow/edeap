@@ -1,0 +1,11 @@
+peptidase_activity 5
+cytokine_activity 3
+regulation_of_cellular_process 6
+extracellular_matrix 8
+extracellular_matrix peptidase_activity 1
+cytokine_activity extracellular_matrix 1
+extracellular_matrix regulation_of_cellular_process 1
+death 4
+cytokine_activity death 2
+death extracellular_matrix 1
+cytokine_activity death extracellular_matrix 1

@@ -1,0 +1,15 @@
+cytokine_activity 3
+regulation_of_biological_process 6
+extracellular_matrix 8
+cytokine_activity extracellular_matrix 1
+extracellular_matrix regulation_of_biological_process 1
+cell_growth 5
+cell_growth regulation_of_biological_process 4
+death 4
+cytokine_activity death 2
+death extracellular_matrix 1
+cytokine_activity death extracellular_matrix 1
+regulation_of_cell_growth 4
+regulation_of_biological_process regulation_of_cell_growth 4
+cell_growth regulation_of_cell_growth 4
+cell_growth regulation_of_biological_process regulation_of_cell_growth 4

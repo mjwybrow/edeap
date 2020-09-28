@@ -1,0 +1,7 @@
+insulin-like_growth_factor_binding 3
+cell_growth 5
+cell_growth insulin-like_growth_factor_binding 3
+regulation_of_cell_growth 4
+insulin-like_growth_factor_binding regulation_of_cell_growth 3
+cell_growth regulation_of_cell_growth 4
+cell_growth insulin-like_growth_factor_binding regulation_of_cell_growth 3

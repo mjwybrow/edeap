@@ -1,0 +1,11 @@
+peptidase_activity 5
+regulation_of_biological_process 6
+regulation_of_cellular_process 6
+regulation_of_biological_process regulation_of_cellular_process 6
+extracellular_matrix 8
+extracellular_matrix peptidase_activity 1
+extracellular_matrix regulation_of_biological_process 1
+extracellular_matrix regulation_of_cellular_process 1
+extracellular_matrix regulation_of_biological_process regulation_of_cellular_process 1
+death 4
+death extracellular_matrix 1

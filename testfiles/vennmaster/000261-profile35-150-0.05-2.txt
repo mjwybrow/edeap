@@ -1,0 +1,29 @@
+peptidase_activity 5
+cytokine_activity 3
+regulation_of_cellular_process 6
+extracellular_matrix 8
+extracellular_matrix peptidase_activity 1
+cytokine_activity extracellular_matrix 1
+extracellular_matrix regulation_of_cellular_process 1
+cell_adhesion 6
+cell_adhesion regulation_of_cellular_process 1
+cell_adhesion extracellular_matrix 3
+cell_adhesion extracellular_matrix regulation_of_cellular_process 1
+protein_catabolism 6
+peptidase_activity protein_catabolism 5
+extracellular_matrix protein_catabolism 1
+extracellular_matrix peptidase_activity protein_catabolism 1
+cell_growth 5
+cell_growth regulation_of_cellular_process 4
+death 4
+cytokine_activity death 2
+death extracellular_matrix 1
+cytokine_activity death extracellular_matrix 1
+proteolysis_and_peptidolysis 6
+peptidase_activity proteolysis_and_peptidolysis 5
+extracellular_matrix proteolysis_and_peptidolysis 1
+extracellular_matrix peptidase_activity proteolysis_and_peptidolysis 1
+protein_catabolism proteolysis_and_peptidolysis 6
+peptidase_activity protein_catabolism proteolysis_and_peptidolysis 5
+extracellular_matrix protein_catabolism proteolysis_and_peptidolysis 1
+extracellular_matrix peptidase_activity protein_catabolism proteolysis_and_peptidolysis 1

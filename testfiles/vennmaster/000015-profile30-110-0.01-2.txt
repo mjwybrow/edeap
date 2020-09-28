@@ -1,0 +1,5 @@
+regulation_of_cellular_process 6
+extracellular_matrix 8
+extracellular_matrix regulation_of_cellular_process 1
+cell_growth 5
+cell_growth regulation_of_cellular_process 4

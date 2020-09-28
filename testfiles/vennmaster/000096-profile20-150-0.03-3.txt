@@ -1,0 +1,16 @@
+sugar_binding 3
+extracellular_matrix 8
+cell_adhesion 6
+cell_adhesion sugar_binding 1
+cell_adhesion extracellular_matrix 3
+protein_catabolism 6
+extracellular_matrix protein_catabolism 1
+cell_surface 3
+cell_surface sugar_binding 2
+cell_surface protein_catabolism 1
+proteolysis_and_peptidolysis 6
+extracellular_matrix proteolysis_and_peptidolysis 1
+protein_catabolism proteolysis_and_peptidolysis 6
+extracellular_matrix protein_catabolism proteolysis_and_peptidolysis 1
+cell_surface proteolysis_and_peptidolysis 1
+cell_surface protein_catabolism proteolysis_and_peptidolysis 1
