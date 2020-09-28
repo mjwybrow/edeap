@@ -37,8 +37,11 @@
 	var venneulerOutput = [];
 	var delayedResults = [];
 
-	var venneulerTesting = false;
-	var eulerrTesting = false;
+	var venneulerTesting = true;
+	var eulerrTesting = true;
+
+	var writeEllipseParamsJSON = true;
+	var writeResultsTableHTML = true;
 
 	var jobQueue = [];
 	var numberOfInitialJobs = 0;
@@ -47,7 +50,7 @@
 	// Time limit for venneuler and eulerr
 	var timeLimitSec = 30 * 60; // 30 minutes
 
-	let canvasSize = 700 ;
+	let canvasSize = 1400 ;
 
 	function initBatch() {
 
@@ -378,15 +381,92 @@
 			var endTime = new Date();
 			var timeTaken = endTime-startTime;
 
-			totalTime += timeTaken;
-			totalEvaluatedSolutions += HCEvalSolutions;
+			let timeTakenSec = timeTaken / 1000;
 
-			var transformation = findTransformationToFit(width, height);
-			var scaling = transformation.scaling;
-			var translateX = transformation.translateX;
-			var translateY = transformation.translateY;
+			let edeapSolutions = "TIMEOUT";
+			let edeapStress = "TIMEOUT";
+			let edeapTAD = "TIMEOUT";
+			let edeapTime = "TIMEOUT";
+			let edeapCSVSolutions = -1;
+			let edeapCSVFitness = -1;
+			let edeapCSVStress = -1;
+			let edeapCSVTAD = -1;
+			let edeapCSVTime = -1;
+			let tableText = areaTableHTML(partialFileName + '-edeap-table')
 
-			var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
+
+			if (timeTakenSec < timeLimitSec) {
+				edeapSolutions = HCEvalSolutions;
+				edeapTime = timeTakenSec;
+				edeapCSVSolutions = HCEvalSolutions;
+				edeapCSVTime = timeTakenSec;
+
+				edeapCSVFitness = globalFinalFitness;
+
+				totalTime += timeTaken;
+				totalEvaluatedSolutions += HCEvalSolutions;
+
+				var transformation = findTransformationToFit(width, height);
+				var scaling = transformation.scaling;
+				var translateX = transformation.translateX;
+				var translateY = transformation.translateY;
+
+				var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
+
+				// final specification
+				let areas = new EdeapAreas();
+				var areaInfo = areas.zoneAreaTableBody(true);
+				edeapStress = areaInfo.veStress.toFixed(6);
+				edeapCSVStress = areaInfo.veStress;
+				edeapTAD = areaInfo.totalAreaDiff.toFixed(4) + "%";
+				edeapCSVTAD = areaInfo.totalAreaDiff;
+
+				tableText = areaTableHTML("areaTableBody", areaInfo.tableBody);
+
+				if (writeEllipseParamsJSON) {
+					let results = {
+						"ellipseParams": areas.ellipseParams,
+						"ellipseLabels": areas.ellipseLabel
+					};
+					var fullFile = path.join(fullBatchDirectory, partialFileName+"-edeap-result.json");
+					fs.writeFile(fullFile, JSON.stringify(results), function(err){
+		    			if (err){
+		        			console.log(err);
+		    			}
+					});
+				}
+
+				if (writeResultsTableHTML) {
+					// save the results in .results file
+					var fullFile = path.join(fullBatchDirectory, partialFileName+".result");
+					fs.writeFile(fullFile, tableText, function(err){
+		    			if (err){
+		        			console.log(err);
+		    			}
+					});
+				}
+
+				fullFile = path.join(fullBatchDirectory, partialFileName + "-edeap.csv");
+				fs.writeFile(fullFile, areaInfo.csvText, function(err){
+	    			if (err){
+	        			console.log(err);
+	    			}
+				});
+
+				var txtFile = path.join(fullBatchDirectory, fileName);
+
+				// svg
+				// Write SVG file.
+				var fullFile = path.join(fullBatchDirectory, partialFileName + "-edeap.svg");
+				fs.writeFile(fullFile, svgText, function(err){
+					if (err){
+						console.log(err);
+					}
+				});
+
+
+			}
+
 
 			var retText = '\n<tr>';
 
@@ -403,46 +483,27 @@
 
 
 			// number of evaluated solutions
-			retText +=  '<td class="statsColumn">'+HCEvalSolutions+'</td>';
+			retText +=  '<td class="statsColumn">'+edeapSolutions+'</td>';
 
-			// final specification
-			let areas = new EdeapAreas();
-			var areaInfo = areas.zoneAreaTableBody(true);
-
-			var tableText = areaTableHTML("areaTableBody", areaInfo.tableBody);
-
-			// save the results in .results file
-			var fullFile = path.join(fullBatchDirectory, partialFileName+".result");
-			fs.writeFile(fullFile, tableText);
-
-			fullFile = path.join(fullBatchDirectory, partialFileName + "-edeap.csv");
-			fs.writeFile(fullFile, areaInfo.csvText);
-
-			var txtFile = path.join(fullBatchDirectory, fileName);
 
 			// time
-			retText += '<td class="statsColumn">'+timeTaken/1000+'</td>';
+			retText += '<td class="statsColumn">'+ edeapTime +'</td>';
 
-			retText += '<td class="statsColumn">' + globalTotalDiff.toFixed(4)+"%</td>";
+			retText += '<td class="statsColumn">' + edeapTAD + "</td>";
 
-			retText += '<td class="statsColumn">' + areaInfo.veStress.toFixed(6) +"</td>";
+			retText += '<td class="statsColumn">' + edeapStress +"</td>";
 
 			// output success/fail
 			//This is based on the percentage that the total diff is of the sum of desired zone areas
 			var allowedError = 5; // error allowed, expressed as a percentage.
-			if (globalTotalDiff > allowedError) {
+			if (edeapTAD < 0 || edeapTAD > allowedError) {
 				retText += '<td class="statsColumn"><span style="color:red">FAIL</span></td>';
-				logMessage(logReproducability, "FAIL\nglobalTotalDiff: "+globalTotalDiff.toFixed(2)+"%\nallowedError: "+allowedError+"%");
+				logMessage(logReproducability, "FAIL\nareaDiff: "+edeapTAD+"\nallowedError: "+allowedError+"%");
 			} else {
 				retText += '<td class="statsColumn"><span style="color:green">SUCCESS</span></td>';
 				logMessage(logReproducability, "SUCCESS");
 			}
 
-
-			// svg
-			// Write SVG file.
-			var fullFile = path.join(fullBatchDirectory, partialFileName + "-edeap.svg");
-			fs.writeFile(fullFile, svgText);
 			retText +=  '<td class="diagramColumn"><img src="'+fullFile+'" /></td>';
 
 			retText += '<td class="finalAreaTableColumn">'+tableText+'</td>';
@@ -471,7 +532,7 @@
 
 			retText += '</tr>\n';
 
-			csvResultsText += '"' + fileName + '", ' + HCEvalSolutions + ", " + globalFinalFitness + ", " + globalTotalDiff + ", " + areaInfo.veStress + ', ' + (timeTaken/1000);
+			csvResultsText += '"' + fileName + '", ' + edeapCSVSolutions + ", " + edeapCSVFitness + ", " + edeapCSVTAD + ", " + edeapCSVStress + ', ' + edeapCSVTime;
 
 			if (venneulerTesting)
 			{
@@ -485,7 +546,11 @@
 			csvResultsText +="\n";
 
 			var fullFile = path.join(fullBatchDirectory, "results.csv");
-			fs.writeFile(fullFile, csvResultsText);
+			fs.writeFile(fullFile, csvResultsText, function(err){
+    			if (err){
+        			console.log(err);
+    			}
+			});
 
 			if (eulerrTesting)
 			{
@@ -549,7 +614,7 @@
 
 		var venneulerStartTime = new Date();
 		var venneulerCommand = 'java edeapConverter/LoadFromFile "' + txtFile + '"';
-		//console.log(venneulerCommand);
+		console.log(venneulerCommand);
 		exec(venneulerCommand, { killSignal: 'SIGKILL', timeout: timeLimitSec * 1000,  cwd: fullBatchDirectory + '/../../venneuler/src-java' }, function(error, stdout, stderr) {
 
 			if (error && error.signal === 'SIGKILL')
@@ -570,44 +635,81 @@
 				var venneulerEndTime = new Date();
 				var venneulerTimeTaken = venneulerEndTime-venneulerStartTime;
 
-				venneulerOutput[filename].venneulerLayoutResults();
-				areas.useEllipseParams(veEllipseParams);
+				if (venneulerOutput[filename] == undefined) {
+					// Likely out of stack space error.
+					csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-stress", -2);
+					csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-tad", -2);
+					csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-time", -2);
 
-				var areaInfo = areas.zoneAreaTableBody(true);
+					documentReplaceInnerHTML(partialFileName + "-venneuler-stress", "ERROR");
+					documentReplaceInnerHTML(partialFileName + "-venneuler-tad", "ERROR");
+					documentReplaceInnerHTML(partialFileName + "-venneuler-time", "ERROR");
+				}
+				else {
+					venneulerOutput[filename].venneulerLayoutResults();
+					areas.useEllipseParams(veEllipseParams);
 
-				var transformation = findTransformationToFit(width, height, areas);
-				var scaling = transformation.scaling;
-				var translateX = transformation.translateX;
-				var translateY = transformation.translateY;
+					var areaInfo = areas.zoneAreaTableBody(true);
 
-				var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling, areas);
+					var transformation = findTransformationToFit(width, height, areas);
+					var scaling = transformation.scaling;
+					var translateX = transformation.translateX;
+					var translateY = transformation.translateY;
 
-				// Write SVG file.
-				var fullFile = path.join(fullBatchDirectory, partialFileName + "-venneuler.svg");
-				fs.writeFile(fullFile, svgText);
+					var svgText = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling, areas);
 
-				delayedResults[partialFileName] = {
-					venneulerTableBody: areaInfo.tableBody,
-					venneulerSvgText: svgText,
-					venneulerSvgFile: fullFile
+					// Write SVG file.
+					var fullFile = path.join(fullBatchDirectory, partialFileName + "-venneuler.svg");
+					fs.writeFile(fullFile, svgText, function(err){
+		    			if (err){
+		        			console.log(err);
+		    			}
+					});
 
-				};
+					delayedResults[partialFileName] = {
+						venneulerTableBody: areaInfo.tableBody,
+						venneulerSvgText: svgText,
+						venneulerSvgFile: fullFile
 
-				fullFile = path.join(fullBatchDirectory, partialFileName + "-venneuler.csv");
-				fs.writeFile(fullFile, areaInfo.csvText);
+					};
 
-				// Add venneuler results into CSV.
-				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-stress", areaInfo.veStress);
-				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-tad", areaInfo.totalAreaDiff);
-				csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-time", venneulerTimeTaken/1000);
+					if (writeEllipseParamsJSON) {
+						let results = {
+							"ellipseParams": areas.ellipseParams,
+							"ellipseLabels": areas.ellipseLabel
+						};
+						var fullFile = path.join(fullBatchDirectory, partialFileName+"-venneuler-result.json");
+						fs.writeFile(fullFile, JSON.stringify(results), function(err){
+			    			if (err){
+			        			console.log(err);
+			    			}
+						});
+					}
 
-				documentReplaceInnerHTML(partialFileName + "-venneuler-stress", areaInfo.veStress.toFixed(6));
-				documentReplaceInnerHTML(partialFileName + "-venneuler-tad", areaInfo.totalAreaDiff.toFixed(4) + '%');
-				documentReplaceInnerHTML(partialFileName + "-venneuler-time", venneulerTimeTaken/1000);
+					fullFile = path.join(fullBatchDirectory, partialFileName + "-venneuler.csv");
+					fs.writeFile(fullFile, areaInfo.csvText, function(err){
+		    			if (err){
+		        			console.log(err);
+		    			}
+					});
+
+					// Add venneuler results into CSV.
+					csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-stress", areaInfo.veStress);
+					csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-tad", areaInfo.totalAreaDiff);
+					csvResultsText = csvResultsText.replace(partialFileName + "-venneuler-time", venneulerTimeTaken/1000);
+
+					documentReplaceInnerHTML(partialFileName + "-venneuler-stress", areaInfo.veStress.toFixed(6));
+					documentReplaceInnerHTML(partialFileName + "-venneuler-tad", areaInfo.totalAreaDiff.toFixed(4) + '%');
+					documentReplaceInnerHTML(partialFileName + "-venneuler-time", venneulerTimeTaken/1000);
+				}
 			}
 
 			var fullFile = path.join(fullBatchDirectory, "results.csv");
-			fs.writeFile(fullFile, csvResultsText);
+			fs.writeFile(fullFile, csvResultsText, function(err){
+    			if (err){
+        			console.log(err);
+    			}
+			});
 
 			fillInDelayedResults();
 
@@ -644,27 +746,61 @@
 				console.log(stdout);
 				console.log("");
 				let lines = stdout.match(/[^\r\n]+/g);
-				// Remove the first line.
-				lines.shift();
+
+				let totalLines = lines.length;
+
+				// eulerr output is either formatted as a key line followed by
+				// a number of lines each with the ellipse label and columns
+				// with values for h, k, a, b, phi.  If the ellipse label is
+				// too long, then each set of lines will list a subset of the
+				// values.
 
 				var ellipseList = [];
+				let keyLine = "";
+				let keys = [];
+				let ellipseIndex = 0;
 				for (let index in lines)
 				{
 					let line = lines[index];
+					if (line.length > 0 && line[0] == " ")
+					{
+						// Ignore the key line
+						keyLine = line;
+						keyLine = keyLine.replace(/\s+/g, ' ').trim();
+						keys = keyLine.split(" ");
+						ellipseIndex = 0;
+						continue;
+					}
+
 					let items = line.split(" ").filter(function(n){ return n !== "" });
+					let xIndex = items.length - keys.length;
 
-					// Label is everything but last 5 columns
-					let xIndex = items.length - 5;
+					// If an object for the given ellipse hasn't been added,
+					// then add one.
+					if (ellipseIndex == ellipseList.length)
+					{
+						ellipseList.push({
+							label: items.slice(0, xIndex).join(" ")
+						});
+					}
 
-					ellipseList.push({
-						x: Number(items[xIndex]),
-						y: Number(items[xIndex + 1]),
-						a: Number(items[xIndex + 2]),
-						b: Number(items[xIndex + 3]),
-						r: Number(items[xIndex + 4]),
-						label: items.slice(0, xIndex).join(" ")
-					})
+					// Iterate through all the value names and add any present
+					// on this lines to the ellipse object.
+					let keyNames = ["h","k","a","b","phi"];
+					let propNames = ["x","y","a","b","r"];
+					for (let keyIndex in keyNames)
+					{
+						keyIndex = Number(keyIndex);
+						let foundIndex = keys.indexOf(keyNames[keyIndex]);
+						if (foundIndex >= 0)
+						{
+							ellipseList[ellipseIndex][propNames[keyIndex]] = Number(items[xIndex + foundIndex]);
+						}
+					}
+
+					ellipseIndex++;
 				}
+
 
 				// Sort the ellipses alphabetically by label.
 				ellipseList.sort(function(a, b) {
@@ -707,7 +843,11 @@
 
 				// Write SVG file.
 				var fullFile = path.join(fullBatchDirectory, partialFileName + "-eulerr.svg");
-				fs.writeFile(fullFile, svgText);
+				fs.writeFile(fullFile, svgText, function(err){
+	    			if (err){
+	        			console.log(err);
+	    			}
+				});
 
 				delayedResults[partialFileName] = {
 					eulerrTableBody: areaInfo.tableBody,
@@ -715,8 +855,25 @@
 					eulerrSvgFile: fullFile
 				};
 
+				if (writeEllipseParamsJSON) {
+					let results = {
+						"ellipseParams": areas.ellipseParams,
+						"ellipseLabels": areas.ellipseLabel
+					};
+					var fullFile = path.join(fullBatchDirectory, partialFileName+"-eulerr-result.json");
+					fs.writeFile(fullFile, JSON.stringify(results), function(err){
+		    			if (err){
+		        			console.log(err);
+		    			}
+					});
+				}
+
 				fullFile = path.join(fullBatchDirectory, partialFileName + "-eulerr.csv");
-				fs.writeFile(fullFile, areaInfo.csvText);
+				fs.writeFile(fullFile, areaInfo.csvText, function(err){
+	    			if (err){
+	        			console.log(err);
+	    			}
+				});
 
 				// Add venneuler results into CSV.
 				csvResultsText = csvResultsText.replace(partialFileName + "-eulerr-stress", areaInfo.veStress);
@@ -729,7 +886,11 @@
 			}
 
 			var fullFile = path.join(fullBatchDirectory, "results.csv");
-			fs.writeFile(fullFile, csvResultsText);
+			fs.writeFile(fullFile, csvResultsText, function(err){
+    			if (err){
+        			console.log(err);
+    			}
+			});
 
 			fillInDelayedResults();
 
@@ -791,7 +952,11 @@
 		html += "</html>";
 
 		let fullFile = path.join(fullBatchDirectory, "results.html");
-		fs.writeFile(fullFile, html);
+		fs.writeFile(fullFile, html, function(err){
+			if (err){
+				console.log(err);
+			}
+		});
 	}
 
 	function generateTests()
@@ -859,11 +1024,10 @@
 			let diagram = generateRandomDiagram(numberOfContours, numberOfZones, maxZoneSize, maxAreaSize);
 			let file = directory + diagramLabel + ".txt";
 
-			fs.writeFile(file, diagram, function(err) {
-				if (err)
-				{
-			        throw err;
-			    }
+			fs.writeFile(file, diagram, function(err){
+    			if (err){
+        			console.log(err);
+    			}
 			});
 			console.log("=========== "+diagramLabel+" ===========");
 			console.log(diagram);
