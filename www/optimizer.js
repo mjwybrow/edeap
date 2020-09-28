@@ -39,10 +39,10 @@ var areas = null;
 // Unlisted weights are assumed to be 1.
 var weights = {
     zoneAreaDifference: 16.35,
-    unwantedZone: 0.01,
+    unwantedZone: 0.1,
     splitZone: 0,
-    missingOneLabelZone: 23.6,
-    missingTwoOrMoreLabelZone: 6.35,
+    missingOneLabelZone: 27.6,
+    missingTwoOrMoreLabelZone: 12.35,
     unwantedExpandedOverlap: 3.6,
     circleDistortion: 0
 };
@@ -63,6 +63,8 @@ var completionHandlerFunc = null;
 
 function optimize(completionHandler)
 {
+    ellipseMap = new Map();
+
     completionHandlerFunc = completionHandler;
 	changeSearchSpace = false;  // optimizer in first stage of search space
     maxMeasures = {}; // to save the maximum value of a meausure in a history of values of each measure to be used in the normalization process
@@ -523,14 +525,20 @@ function equalizeEffect(i, normalizedMeasures)
 }
 
 
+function fixNumberPrecision(value)
+{
+    return Number(parseFloat(value).toPrecision(13));
+}
+
 // computes the fitness value when we move the center point horizontally
 
 function centerX(elp, centerShift)
 {
-    ellipseParams[elp].X += centerShift;
+    let oldX = ellipseParams[elp].X;
+    ellipseParams[elp].X = fixNumberPrecision(oldX + centerShift);
     var fit = computeFitness();
     logMessage(logOptimizerChoice, "fit %s", fit);
-    ellipseParams[elp].X -= centerShift; // to return back to the state before the change
+    ellipseParams[elp].X = oldX; // to return back to the state before the change
     return fit;
 }
 
@@ -538,10 +546,11 @@ function centerX(elp, centerShift)
 
 function centerY(elp, centerShift)
 {
-     ellipseParams[elp].Y += centerShift;
+    let oldY = ellipseParams[elp].Y;
+     ellipseParams[elp].Y = fixNumberPrecision(oldY + centerShift);
 	 var fit = computeFitness();
 	 logMessage(logOptimizerChoice, "fit %s", fit);
-	 ellipseParams[elp].Y -= centerShift; // to return back to the state before the change
+	 ellipseParams[elp].Y = oldY; // to return back to the state before the change
      return fit;
 }
 
@@ -605,13 +614,15 @@ function RadiusAndRotateA(elp, radiusLength, angle)
 // apply the move on the center point of the ellipse elp horizontally
 function changeCenterX(elp, centerShift)
 {
-    ellipseParams[elp].X += centerShift;
+    let oldX = ellipseParams[elp].X;
+    ellipseParams[elp].X = fixNumberPrecision(oldX + centerShift);
 }
 
 // apply the move on the center point of the ellipse elp vertically
 function changeCenterY(elp, centerShift)
 {
-    ellipseParams[elp].Y += centerShift;
+    let oldY = ellipseParams[elp].Y;
+     ellipseParams[elp].Y = fixNumberPrecision(oldY + centerShift);
 }
 
 // apply the move by increasing/decreasing radius A of ellipse elp

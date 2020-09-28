@@ -21,6 +21,36 @@ const logOptimizerStep   = 2 ** 1;
 const logOptimizerChoice = 2 ** 2;
 const logReproducability = 2 ** 3;
 
+let ellipseMap = new Map();
+
+let gridSize = 0.026;
+
+function prevGridValue(value) {
+    let number = value / gridSize;
+    let multiples = (number < 0) ? Math.ceil(number) : Math.floor(number);
+    return (gridSize * multiples);
+}
+
+function nextGridValue(value) {
+    let number = value / gridSize;
+    let multiples = (number < 0) ? Math.floor(number) : Math.ceil(number);
+    return (gridSize * multiples);
+}
+
+function prevGridPoint(point) {
+    return {
+        x: prevGridValue(point.x),
+        y: prevGridValue(point.y),
+    };
+}
+
+function nextGridPoint(point) {
+    return {
+        x: nextGridValue(point.x),
+        y: nextGridValue(point.y),
+    };
+}
+
 // Select the type of logging to display.  To select multiple types
 // of logging, assign this variable a value via options separated by
 // bitwise OR (|):
@@ -145,6 +175,11 @@ function distanceBetween(x1, y1, x2, y2)
     return Math.sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
 }
 
+// ### AREA TEST DEBUG START
+//let paramsArray = [];
+//let labelsArray = [];
+//let lastParams = "";
+// ### AREA TEST DEBUG END
 
 
 class EdeapAreas
@@ -201,15 +236,29 @@ class EdeapAreas
     //    zoneLabelPositions    Ideal label position for each zone.  Only
     //                          generated if generateLabelPositions is true.
     //
-    computeAreasAndBoundingBoxesFromEllipses(generateLabelPositions, sampleSize)
+    computeAreasAndBoundingBoxesFromEllipses(generateLabelPositions)
     {
         if (generateLabelPositions === undefined)
         {
             generateLabelPositions = false;
+
         }
 
+// ### AREA TEST DEBUG START
+//        if (generateLabelPositions) {
+//            let paramsString = JSON.stringify(this.ellipseParams);
+//            if (paramsString !== lastParams) {
+//                paramsArray.push(this.ellipseParams);
+//                labelsArray.push(this.ellipseLabel);
+//                lastParams = paramsString;
+//                console.log(JSON.stringify(paramsArray));
+//                console.log(JSON.stringify(labelsArray));
+//            }
+//        }
+// ### AREA TEST DEBUG END
         // !!! Now need this for computing split zones.
         //generateLabelPositions = true;
+
 
         var maxAOrB = 0;
         for (var i = 0; i < this.ellipseParams.length; i++)
@@ -230,6 +279,8 @@ class EdeapAreas
                 y: Number.MIN_VALUE
             }
         };
+
+
         var ellipseBoundingBoxes = [];
         for (var i = 0; i < this.ellipseParams.length; i++)
         {
@@ -263,143 +314,256 @@ class EdeapAreas
         {
             // Work out step size so we sample at least MAX_DIM_SAMPLES
             // in the smaller of the two dimensions.
-            const MAX_DIM_SAMPLES = 50;
-            var diffMin = Math.min(diffX, diffY);
-            this.areaSampleStep = diffMin / MAX_DIM_SAMPLES;
-            logMessage(logFitnessDetails, "Area sample step: " + this.areaSampleStep);
+            //const MAX_DIM_SAMPLES = 50;
+            //var diffMin = Math.min(diffX, diffY);
+            //this.areaSampleStep = nextGridValue(diffMin / MAX_DIM_SAMPLES);
+
+            // XXX: Use fixed grid size
+            this.areaSampleStep = gridSize;
+            console.log(logFitnessDetails, "Area sample step: " + this.areaSampleStep);
         }
 
         let areaSampleStep = this.areaSampleStep;
 
-        if (generateLabelPositions && sampleSize !== undefined)
-        {
-            let diffMin = Math.min(diffX, diffY);
-            areaSampleStep = diffMin / sampleSize;
-        }
-
-        // For each point in the overall bouding box, check which ellipses
+        // For each point in the overall bounding box, check which ellipses
         // it is inside to determine its zone.
-        var zonePoints = {};
+        var zoneInfo = new Map();
         var totalPoints = 0;
         var expandedZonePoints = {};
         var expandedTotalPoints = 0;
-        var zoneBitmaps = {};
-        var zoneAvgPos = {};
 
         var bitmapSizeX = Math.ceil(diffX / areaSampleStep) + 1;
         var bitmapSizeY = Math.ceil(diffY / areaSampleStep) + 1;
         var length = bitmapSizeX * bitmapSizeY;
 
-        var yCounter = 0;
-
         // Always align the area sampling point with a multiple of the
         // areaSampleStep.  Otherwise we could get different values for
         // some ellipses if the left or top of the bounding box changes.
-        var startX = Math.floor(oversizedBB.p1.x / areaSampleStep) * areaSampleStep;
-        var startY = Math.floor(oversizedBB.p1.y / areaSampleStep) * areaSampleStep;
+        var startX = prevGridValue(oversizedBB.p1.x);
+        var startY = prevGridValue(oversizedBB.p1.y);
+        var endX =   nextGridValue(oversizedBB.p2.x);
+        var endY =   nextGridValue(oversizedBB.p2.y);
 
-        for (var y = startY; y <= oversizedBB.p2.y; y = y + areaSampleStep)
+// ### AREA TEST DEBUG START
+//        var movedX1 = oversizedBB.p1.x - startX;
+//        var movedY1 = oversizedBB.p1.y - startY;
+//        var movedX2 = endX - oversizedBB.p2.x;
+//        var movedY2 = endY - oversizedBB.p2.y;
+// ### AREA TEST DEBUG END
+
+        let ellipseKeys = [];
+        let expandedEllipseKeys = [];
+
+        for (var i = 0; i < this.ellipseParams.length; i++)
         {
-            var xCounter = 0;
-            for (var x = startX; x <= oversizedBB.p2.x; x = x + areaSampleStep)
-            {
-                // zone is a list of sets.
-                var sets = [];
-                var expandedSets = [];
-                for (var i = 0; i < this.ellipseParams.length; i++)
-                {
-                    let ellipse = this.ellipseParams[i];
-                    let label = this.ellipseLabel[i];
-                    var inside = isInEllipse(x, y, ellipse.X, ellipse.Y,
-                            ellipse.A, ellipse.B, ellipse.R);
-                    if (inside)
-                    {
-                        // For each set the point is inside, add the label
-                        // for the set to the sets list.
-                        sets.push(label);
-                        expandedSets.push(label);
+            let ellipse = this.ellipseParams[i];
+            let label = this.ellipseLabel[i];
+
+            let ellipseMapKey = ellipse.X + ":" + ellipse.Y + ":" +
+                    ellipse.A + ":" + ellipse.B + ":" + ellipse.R;
+            let ellipseHitInfo = ellipseMap.get(ellipseMapKey);
+
+            //ellipseHitInfo = undefined;
+            if (ellipseHitInfo === undefined) {
+                // Expand the total bounding box edges to accomodate this
+                // ellipse.
+                let bb = ellipseBoundingBox(ellipse.X, ellipse.Y,
+                        ellipse.A, ellipse.B, ellipse.R);
+
+                let oversizedBB = {
+                    p1: {
+                        x: bb.p1.x - ellipseNonOverlapPadding,
+                        y: bb.p1.y - ellipseNonOverlapPadding
+                    },
+                    p2: {
+                        x: bb.p2.x + ellipseNonOverlapPadding,
+                        y: bb.p2.y + ellipseNonOverlapPadding
                     }
-                    else
+                };
+
+                let diffX = oversizedBB.p2.x - oversizedBB.p1.x;
+                let diffY = oversizedBB.p2.y - oversizedBB.p1.y;
+
+                let hitmapSizeX = Math.ceil(diffX / gridSize) + 1;
+                let hitmapSizeY = Math.ceil(diffY / gridSize) + 1;
+                let hitmapLength = hitmapSizeX * hitmapSizeY;
+
+                let hitInfo = {
+                    smallHitArray: new Array(hitmapLength),
+                    smallHitArraySizeX: hitmapSizeX,
+                    position: prevGridPoint(oversizedBB.p1),
+                    endPosition: nextGridPoint(oversizedBB.p2)
+                };
+                ellipseKeys[i] = hitInfo;
+                ellipseMap.set(ellipseMapKey, hitInfo);
+
+
+                let hitArray = hitInfo.smallHitArray;
+
+                let yCounter = 0;
+                for (let y = hitInfo.position.y; y <= hitInfo.endPosition.y; y = y + gridSize)
+                {
+                    let xCounter = 0;
+                    for (let x = hitInfo.position.x; x <= hitInfo.endPosition.x; x = x + gridSize)
                     {
-                        // Not inside ellipse, see if inside expanded ellipse
-                        var inside = isInEllipse(x, y, ellipse.X, ellipse.Y,
+
+                        let index = yCounter * hitmapSizeX + xCounter;
+
+                        let inside = isInEllipse(x, y, ellipse.X, ellipse.Y,
+                                ellipse.A, ellipse.B, ellipse.R);
+                        let insideValue = 0;
+                        if (inside) {
+                            insideValue = 1;
+                        }
+                        else
+                        {
+                            // Not inside ellipse, see if inside expanded ellipse
+                            inside = isInEllipse(x, y, ellipse.X, ellipse.Y,
                                 ellipse.A + ellipseNonOverlapPadding,
                                 ellipse.B + ellipseNonOverlapPadding,
                                 ellipse.R);
-                        if (inside)
+                            if (inside) {
+                                insideValue = 2;
+                            }
+                        }
+
+                        hitArray[index] = insideValue;
+                        xCounter++;
+                    }
+                    yCounter++;
+                }
+            }
+            else {
+                ellipseKeys[i] = ellipseHitInfo;
+            }
+        }
+
+
+        let lastZoneInfoVal = null;
+        let lastZone = null;
+
+// ### AREA TEST DEBUG START
+//        let xRange = endX - startX;
+//        let yRange = endY - startY;
+// ### AREA TEST DEBUG END
+
+        let yCounter = 0;
+        var xCounter = 0;
+        for (let y = startY; y <= endY; y = y + areaSampleStep)
+        {
+            xCounter = 0;
+            for (let x = startX; x <= endX; x = x + areaSampleStep)
+            {
+                // zone is a list of sets.
+                let sets = [];
+                let expandedSets = [];
+                for (let i = 0; i < this.ellipseParams.length; i++)
+                {
+                    let ellipseAreaInfo = ellipseKeys[i];
+
+                    let inside = 0;
+                    if (x >= ellipseAreaInfo.position.x &&
+                        x <= ellipseAreaInfo.endPosition.x &&
+                        y >= ellipseAreaInfo.position.y &&
+                        y <= ellipseAreaInfo.endPosition.y) {
+
+                        let effectiveX = x - ellipseAreaInfo.position.x;
+                        let effectiveY = y - ellipseAreaInfo.position.y;
+                        let xCounter = Math.floor(effectiveX / gridSize);
+                        let yCounter = Math.floor(effectiveY / gridSize);
+
+                        let index = yCounter * ellipseAreaInfo.smallHitArraySizeX + xCounter;
+                        inside =  ellipseAreaInfo.smallHitArray[index];
+
+                        if (inside === 1)
                         {
+                            // For each set the point is inside, add the label
+                            // for the set to the sets list.
+                            let label = this.ellipseLabel[i];
+                            sets.push(label);
                             expandedSets.push(label);
                         }
+                        else if (inside === 2)
+                        {
+                            let label = this.ellipseLabel[i];
+                            expandedSets.push(label);
+                        }
+
                     }
+
                 }
+
                 // zone string is just the sets list stringified.
-                var zone = sets.toString();
-
-                if (zonePoints.hasOwnProperty(zone))
+                if (sets.length > 0)
                 {
+                    let zone = sets.toString();
+                    let zoneInfoVal = null;
+                    if (zone === lastZone) {
+                        zoneInfoVal = lastZoneInfoVal;
+                    }
+                    else {
+                        zoneInfoVal = zoneInfo.get(zone);
+                        if (zoneInfoVal === undefined)
+                        {
+                            // Zone has not been seen, add it with 1 point.
+                            zoneInfoVal = {
+                                points: 0,
+                                avgPos: {
+                                    x: 0,
+                                    y: 0,
+                                    count: 0,
+                                    firstX: x,
+                                    firstY: y,
+                                    firstXIndex: xCounter,
+                                    firstYIndex: yCounter
+                                }
+                            };
+                            zoneInfo.set(zone, zoneInfoVal);
+
+                            if (generateLabelPositions)
+                            {
+                                // Create the empty bitmap for zone.
+                                zoneInfoVal.bitmap = new Array(length).fill(false);
+                            }
+                        }
+                        lastZone = zone;
+                        lastZoneInfoVal = zoneInfoVal;
+                    }
+
                     // Zone has been seen, increment points count.
-                    zonePoints[zone] += 1;
-                }
-                else
-                {
-                    // Zone has not been seen, add it with 1 point.
-                    zonePoints[zone] = 1;
-
-                    // Create the average position information.
-                    zoneAvgPos[zone] = {
-                        x: 0,
-                        y: 0,
-                        count: 0,
-                        firstX: x,
-                        firstY: y,
-                        firstXIndex: xCounter,
-                        firstYIndex: yCounter
-                    };
+                    zoneInfoVal.points++;
 
                     if (generateLabelPositions)
                     {
-                        // Create the empty bitmap for zone.
-                        zoneBitmaps[zone] = new Array(length).fill(false);
+                        // Mark point in zone bitmap.
+                        zoneInfoVal.bitmap[yCounter * bitmapSizeX + xCounter] = true;
                     }
-                }
 
-                // zone string is just the sets list stringified.
-                var expandedZone = expandedSets.toString();
-                if (expandedZonePoints.hasOwnProperty(expandedZone))
-                {
-                    // Zone has been seen, increment points count.
-                    expandedZonePoints[expandedZone] += 1;
-                }
-                else
-                {
-                    // Zone has not been seen, add it with 1 point.
-                    expandedZonePoints[expandedZone] = 1;
-                }
+                    // Add this position to the x and y total,
+                    // so we can compute average position later.
+                    zoneInfoVal.avgPos.x += x;
+                    zoneInfoVal.avgPos.y += y;
+                    zoneInfoVal.avgPos.count += 1;
 
-                if (generateLabelPositions)
-                {
-                    // Mark point in zone bitmap.
-                    if (xCounter >= bitmapSizeX)
-                    {
-                        console.log("Error: zoneBitmaps not wide enough.");
-                    }
-                    zoneBitmaps[zone][yCounter * bitmapSizeX + xCounter] = true;
-                }
-
-                // Add this position to the x and y total,
-                // so we can compute average position later.
-                zoneAvgPos[zone].x += x;
-                zoneAvgPos[zone].y += y;
-                zoneAvgPos[zone].count += 1;
-
-                if (zone !== "")
-                {
                     // Update totalPoints if point is not in empty set.
                     totalPoints++;
                 }
 
-                if (expandedZone !== "")
+                if (expandedSets.length > 0)
                 {
+                    // zone string is just the sets list stringified.
+                    let expandedZone = expandedSets.toString();
+                    if (expandedZonePoints.hasOwnProperty(expandedZone))
+                    {
+                        // Zone has been seen, increment points count.
+                        expandedZonePoints[expandedZone] += 1;
+                    }
+                    else
+                    {
+                        // Zone has not been seen, add it with 1 point.
+                        expandedZonePoints[expandedZone] = 1;
+                    }
+
                     // Update expandedTotalPoints if point is not in empty set.
                     expandedTotalPoints++;
                 }
@@ -409,19 +573,25 @@ class EdeapAreas
             yCounter++;
         }
 
+        for (var i = 0; i < this.ellipseParams.length; i++)
+        {
+            let ellipseAreaInfo = ellipseKeys[i];
+            ellipseAreaInfo.needsFilling = false;
+        }
+
         // For each zone, calculate the proportion of its area of the
         // total area of all zones other than the non-labelled zone.
         var zoneProportions = {};
-        for (var property in zonePoints)
+// ### AREA TEST DEBUG START
+//        var zoneSamples = {};
+// ### AREA TEST DEBUG END
+        for (let [key, value] of zoneInfo.entries())
         {
-            if (property === "")
-            {
-                // Don't include the non-labelled zone.
-                continue;
-            }
-
-            var proportion = zonePoints[property] / totalPoints;
-            zoneProportions[property] = proportion;
+            var proportion = value.points / totalPoints;
+            zoneProportions[key] = proportion;
+// ### AREA TEST DEBUG START
+//            zoneSamples[key] = value.points;
+// ### AREA TEST DEBUG END
         }
 
         // For each expanded zone, calculate the proportion of its area of the
@@ -429,15 +599,10 @@ class EdeapAreas
         var expandedZoneProportions = {};
         for (var property in expandedZonePoints)
         {
-            if (property === "")
-            {
-                // Don't include the non-labelled zone.
-                continue;
-            }
-
             var proportion = expandedZonePoints[property] / expandedTotalPoints;
             expandedZoneProportions[property] = proportion;
         }
+
 
         var splitZoneAreaProportions = {};
 
@@ -445,21 +610,30 @@ class EdeapAreas
             overallBoundingBox: totalBB,
             boundingBoxes: ellipseBoundingBoxes,
             zoneAreaProportions: zoneProportions,
+// ### AREA TEST DEBUG START
+//            zoneSamples: zoneSamples,
+//            xCount: xCounter,
+//            yCount: yCounter,
+//            xRange: xRange,
+//            yRange: yRange,
+//            movedX1,
+//            movedY1,
+//            movedX2,
+//            movedY2,
+//            totalSamples: totalPoints,
+// ### AREA TEST DEBUG START
             splitZoneAreaProportions: splitZoneAreaProportions,
-            expandedZoneAreaProportions: expandedZoneProportions,
+            expandedZoneAreaProportions: expandedZoneProportions
         };
 
         // Return the point in each zone with the widest x and y coord.
         var zoneLabelPositions = {};
-        for (var zone in zoneBitmaps)
+        for (let [zone, zoneValue] of zoneInfo.entries())
         {
-            if (zone === "")
-            {
-                // Don't include the non-labelled zone.
+            let bitmap = zoneValue.bitmap;
+            if (bitmap === undefined) {
                 continue;
             }
-            let bitmap = zoneBitmaps[zone];
-
             // Scan the bitmap of points within this zone in order to determine
             // the number of disconnected fragments.  We do this by flood-filling
             // with the fillFragment function on the zoneFragmentMap array. After
@@ -523,15 +697,16 @@ class EdeapAreas
                 splitZoneAreaProportions[zone] = 0;
             }
 
+            let zoneAvgPos = zoneInfo.get(zone).avgPos;
             // Update average points.
-            zoneAvgPos[zone].x /= zoneAvgPos[zone].count;
-            zoneAvgPos[zone].y /= zoneAvgPos[zone].count;
-            delete zoneAvgPos[zone].count;
+            zoneAvgPos.x /= zoneAvgPos.count;
+            zoneAvgPos.y /= zoneAvgPos.count;
+            delete zoneAvgPos.count;
 
-            var x = zoneAvgPos[zone].firstXIndex;
-            var y = zoneAvgPos[zone].firstYIndex;
-            delete zoneAvgPos[zone].firstXIndex;
-            delete zoneAvgPos[zone].firstYIndex;
+            var x = zoneAvgPos.firstXIndex;
+            var y = zoneAvgPos.firstYIndex;
+            delete zoneAvgPos.firstXIndex;
+            delete zoneAvgPos.firstYIndex;
 
             if (generateLabelPositions)
             {
@@ -557,8 +732,8 @@ class EdeapAreas
                     return neighbourCount;
                 }
 
-                var centreX = Math.floor((zoneAvgPos[zone].x - oversizedBB.p1.x) / areaSampleStep);
-                var centreY = Math.floor((zoneAvgPos[zone].y - oversizedBB.p1.y) / areaSampleStep);
+                var centreX = Math.floor((zoneAvgPos.x - oversizedBB.p1.x) / areaSampleStep);
+                var centreY = Math.floor((zoneAvgPos.y - oversizedBB.p1.y) / areaSampleStep);
 
                 if ((centreX > 0) && (centreY > 0) && bitmap[(centreY * bitmapSizeX) + centreX] === true)
                 {
@@ -650,10 +825,12 @@ class EdeapAreas
             result.zoneLabelPositions = zoneLabelPositions;
         }
 
-        // Delete empty label zone from average position info.
-        delete zoneAvgPos[""];
 
-        result.zoneAveragePositions = zoneAvgPos;
+        let zoneAvgPosArray = [];
+        for (let [label, value] of zoneInfo.entries()) {
+            zoneAvgPosArray[label] = value.avgPos;
+        }
+        result.zoneAveragePositions = zoneAvgPosArray;
 
         return result;
     }
@@ -1294,19 +1471,19 @@ class EdeapAreas
             csvText += '"' + zone + '",' + (desiredAreaProportion * 100) + ", " + (actualAreaProportion * 100) + ", " + (difference * 100) + "\n";
         }
 
-        globalTotalDiff = (totalAreaDifference * 100);
+        let totalAreaDiff = (totalAreaDifference * 100);
 
         tbody += "<tr>";
 
         tbody += "<td><b>Total area diff:</b></td>";
 
         tbody +='<td colspan="3" class="other">' +
-                globalTotalDiff.toFixed(4) +
+                totalAreaDiff.toFixed(4) +
                 "</td>";
 
         tbody += "</tr>";
 
-        csvText += 'Total:,,,' + globalTotalDiff + '\n';
+        csvText += 'Total:,,,' + totalAreaDiff + '\n';
 
         // For comparison compare against venneuler().
         if (typeof VennEulerAreas === "function")
@@ -1324,11 +1501,11 @@ class EdeapAreas
             tbody += "</tr>";
         }
 
-        this.maxTotalAreaDiff = Math.max(this.maxTotalAreaDiff, globalTotalDiff);
-        if (globalTotalDiff < this.maxTotalAreaDiff)
+        this.maxTotalAreaDiff = Math.max(this.maxTotalAreaDiff, totalAreaDiff);
+        if (totalAreaDiff < this.maxTotalAreaDiff)
         {
             const PROGRESS_LENGTH = 2000;
-            let progressValue = (1 - (globalTotalDiff / this.maxTotalAreaDiff)) * PROGRESS_LENGTH;
+            let progressValue = (1 - (totalAreaDiff / this.maxTotalAreaDiff)) * PROGRESS_LENGTH;
 
             tbody += '<tr class="progressRow">';
             tbody += '<td colspan="4">';
@@ -1344,7 +1521,7 @@ class EdeapAreas
                 tableBody: tbody,
                 csvText: csvText,
                 veStress: veStress,
-                totalAreaDiff: globalTotalDiff
+                totalAreaDiff: totalAreaDiff
             };
         }
 

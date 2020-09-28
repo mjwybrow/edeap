@@ -12,9 +12,6 @@ var showSetLabels = false;
 var showIntersectionValues = false;
 
 
-var idealEllipseArea = 10000;
-var ellipseScalingValue; // how much the area specifications are scaled to make the average ellipse idealEllipseArea
-
 var globalContours = []; // size of number of ellipses
 var globalZones = []; // size of number of intersections
 var globalZoneStrings = []; // size of number of intersections, string version of globalZones
@@ -28,7 +25,6 @@ var globalValueHeights = []; // size of number of intersections
 var globalAbstractDescription;
 
 var globalZoneAreaTableBody = ""; // to access table output from updateZoneAreaTable, not terribly elegant
-var globalTotalDiff = -1; // access to total difference in areas after optimizer has finished
 var globalFinalFitness = -1; // access to fitness after optimizer has finished
 
 	function setupGlobal(areaSpecificationText) {
@@ -60,15 +56,47 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 		globalProportions = findProportions(globalZones);
 		globalZones = removeProportions(globalZones);
 
+		function onlyUnique(value, index, self) {
+		    return self.indexOf(value) === index;
+		}
+
 		// remove zero zones and proportions
 		var removeList = new Array();
-		for(var i=0; i < globalProportions.length; i++) {
+		for (var i=0; i < globalProportions.length; i++) {
 			var proportion = globalProportions[i];
-			if(proportion === 0.0) {
+			var problem = false;
+			let lineNum = i + 1;
+
+			let globalZonesString = JSON.stringify(globalZones[i]);
+			if (JSON.stringify(globalZones[i].filter(onlyUnique)) != globalZonesString)
+			{
+				console.log("ERROR:    " + lineNum + ": Zone description has duplicated labels: ");
+				console.log("          " + globalZones[i].join(" ") + " " + proportion);
+			}
+
+			for (var j=0; j < i; j++) {
+				if (globalZonesString == JSON.stringify(globalZones[j])) {
+					if (globalProportions[i] != globalProportions[j]) {
+						console.log("ERROR:    " + lineNum + ": Duplicated zone doesn't match previous area ("+ globalProportions[j] + "): ");
+						console.log("          " + globalZones[i].join(" ") + " " + proportion);
+					}
+					else {
+						console.log("WARNING:  " + lineNum + ": Unnecessary duplicated zone: ");
+						console.log("          " + globalZones[i].join(" ") + " " + proportion);
+					}
+					removeList.push(i);
+					problem = true;
+					break;
+				}
+			}
+			if (proportion === 0.0 && !problem) {
+				console.log("WARNING: " + lineNum + ": Unnecessary empty zone: ");
+				console.log("          " + globalZones[i].join(" ") + " " + proportion);
 				removeList.push(i);
+				continue;
 			}
 		}
-		for(var i=removeList.length-1; i >= 0; i--) {
+		for (var i=removeList.length-1; i >= 0; i--) {
 			var index = removeList[i];
 			globalProportions.splice(index,1);
 			globalZones.splice(index,1);
@@ -517,9 +545,7 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 
 		if (intersectionValues) {
 			var generateLabelPositions = true;
-			// Higher sample size for better label positioning.
-			var sampleSize = 300;
-			var areaInfo = areas.computeAreasAndBoundingBoxesFromEllipses(generateLabelPositions, sampleSize);
+			var areaInfo = areas.computeAreasAndBoundingBoxesFromEllipses(generateLabelPositions);
 
 			for(var i=0; i < areas.globalZoneStrings.length; i++) {
 				var zoneLabel = areas.globalZoneStrings[i];
