@@ -8,9 +8,13 @@ var canvasHeight;
 var translateX = 0;
 var translateY = 0;
 var scaling = 100;
-var showSetLabels = false;
-var showIntersectionValues = false;
-
+var showSetLabels = true;
+var showIntersectionValues = true;
+var colourPaletteName = "Tableau10";
+var defaultLabelFontSize = 12;
+var defaultValueFontSize = 12;
+var labelFontSize = "12pt";
+var valueFontSize = "12pt";
 
 var globalContours = []; // size of number of ellipses
 var globalZones = []; // size of number of intersections
@@ -19,8 +23,9 @@ var globalOriginalProportions = []; // proportions before scaling, size of numbe
 var globalProportions = []; // proportions after scaling, size of number of intersections
 var globalOriginalContourAreas = new Array(); // size of number of ellipses
 var globalContourAreas = []; // size of number of ellipses
-var globalLabelLengths = []; // size of number of ellipses
-var globalValueLengths = []; // size of number of intersections
+var globalLabelWidths = []; // size of number of ellipses
+var globalLabelHeights = []; // size of number of intersections
+var globalValueWidths = []; // size of number of intersections
 var globalValueHeights = []; // size of number of intersections
 var globalAbstractDescription;
 
@@ -36,8 +41,9 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 		globalProportions = [];
 		globalOriginalContourAreas = [];
 		globalContourAreas = [];
-		globalLabelLengths = [];
-		globalValueLengths = [];
+		globalLabelWidths = [];
+		globalLabelHeights = [];
+		globalValueWidths = [];
 		globalValueHeights = [];
 
 		ellipseParams = [];
@@ -493,8 +499,8 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 				let angleRad = angle.toRadians();
 				let {x, y} = ellipseBoundaryPosition(eA, eB, eR, angleRad);
 
-				var textWidth = areas.globalLabelLengths[i];
-				var textHeight = 15;
+				var textWidth = areas.globalLabelWidths[i];
+				var textHeight = areas.globalLabelHeights[i];
 
 				if (LABEL_DEBUGGING) {
 					nextSVG ='<circle cx="'+(x + eX) +'" cy="'+(y + eY)+'" r="5" stroke-width="1" stroke="black" fill="red" />'+"\n";
@@ -536,9 +542,8 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 					y -= halfHeight;
 				}
 
-				var textLength = areas.globalLabelLengths[i];
 				var color = findColor(i);
-				nextSVG ='<text style="dominant-baseline: central; font-family: Helvetica; font-size: 12pt;" x="'+((x + eX) - textWidth / 2) +'" y="'+(y + eY) +'" fill="'+color+'">'+areas.ellipseLabel[i]+'</text>'+"\n";
+				nextSVG ='<text style="font-family: Helvetica; font-size: ' + labelFontSize + ';" x="'+((x + eX) - textWidth / 2) +'" y="'+(y + eY) +'" fill="'+color+'">'+areas.ellipseLabel[i]+'</text>'+"\n";
 				svgString += nextSVG;
 			}
 		}
@@ -547,19 +552,17 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 			var generateLabelPositions = true;
 			var areaInfo = areas.computeAreasAndBoundingBoxesFromEllipses(generateLabelPositions);
 
-			for(var i=0; i < areas.globalZoneStrings.length; i++) {
+			for (var i=0; i < areas.globalZoneStrings.length; i++) {
 				var zoneLabel = areas.globalZoneStrings[i];
 				var labelPosition = areaInfo.zoneLabelPositions[zoneLabel];
-				if(labelPosition !== undefined) {
+				if (labelPosition !== undefined) {
 					//var labelPosition = computeLabelPosition(globalZones[i]);
 					var labelX = (labelPosition.x+translateX)*scaling;
 					var labelY = (labelPosition.y+translateY)*scaling;
-					var textLength = areas.globalValueLengths[i];
+					var textWidth = areas.globalValueWidths[i];
 					var textHeight = areas.globalValueHeights[i];
-					labelX = labelX-textLength/2;
-					labelY = labelY;
-					if(!isNaN(labelX)) {
-						nextSVG ='<text x="'+labelX+'" y="'+labelY+'" style="dominant-baseline: central; font-family: Helvetica; font-size: 12pt;" fill="black">'+areas.globalOriginalProportions[i]+'</text>'+"\n";
+					if (!isNaN(labelX)) {
+						nextSVG ='<text dominant-baseline="middle" text-anchor="middle" x="'+labelX+'" y="'+labelY+'" style="font-family: Helvetica; font-size: ' + valueFontSize + ';" fill="black">'+areas.globalOriginalProportions[i]+'</text>'+"\n";
 						svgString += nextSVG;
 					}
 
@@ -807,7 +810,6 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 	}
 
 
-
 	function findContoursFromZones(zones) {
 		var ret = new Array();
 		for(var i=0; i < zones.length; i++) {
@@ -825,28 +827,79 @@ var globalFinalFitness = -1; // access to fitness after optimizer has finished
 	}
 
 
+	let colourPalettes = {
+		"Tableau10": [
+			'rgb(78, 121, 167)',
+			'rgb(242, 142, 43)',
+			'rgb(225, 87, 89)',
+			'rgb(118, 183, 178)',
+			'rgb(89, 161, 79)',
+			'rgb(237, 201, 72)',
+			'rgb(176, 122, 161)',
+			'rgb(255, 157, 167)',
+			'rgb(156, 117, 95)',
+			'rgb(186, 176, 172)'
+		],
+		"Tableau20": [
+			'rgb(78, 121, 167)',
+			'rgb(160, 203, 232)',
+			'rgb(242, 142, 43)',
+			'rgb(255, 190, 125)',
+			'rgb(89, 161, 79)',
+			'rgb(140, 209, 125)',
+			'rgb(182, 153, 45)',
+			'rgb(241, 206, 99)',
+			'rgb(73, 152, 148)',
+			'rgb(134, 188, 182)',
+			'rgb(225, 87, 89)',
+			'rgb(255, 157, 154)',
+			'rgb(121, 112, 110)',
+			'rgb(186, 176, 172)',
+			'rgb(211, 114, 149)',
+			'rgb(250, 191, 210)',
+			'rgb(176, 122, 161)',
+			'rgb(212, 166, 200)',
+			'rgb(157, 118, 96)',
+			'rgb(215, 181, 166)'
+		],
+		"Tableau ColorBlind": [
+			'rgb(17, 112, 170)',
+			'rgb(252, 125, 11)',
+			'rgb(163, 172, 185)',
+			'rgb(87, 96, 108)',
+			'rgb(95, 162, 206)',
+			'rgb(200, 82, 0)',
+			'rgb(123, 132, 143)',
+			'rgb(163, 204, 233)',
+			'rgb(255, 188, 121)',
+			'rgb(200, 208, 217)'
+		],
+		"ColorBrewer": [
+			'rgb(31,120,180)',
+			'rgb(51,160,44)',
+			'rgb(255,127,0)',
+			'rgb(106,61,154)',
+			'rgb(177,89,40)',
+			'rgb(227,26,28)',
+			'rgb(166,206,227)',
+			'rgb(253,191,111)',
+			'rgb(178,223,138)',
+			'rgb(251,154,153)',
+			'rgb(202,178,214)',
+			'rgb(255,255,153)'
+		]
+	};
 
 
 	function findColor(i) {
+		let colourPalette = colourPalettes[colourPaletteName];
 
-		// colorbrewer qualitative option for 12 sets, rearranged order
-		var colorbrewerArray = ['rgb(31,120,180)','rgb(51,160,44)','rgb(255,127,0)','rgb(106,61,154)',
-		'rgb(177,89,40)','rgb(227,26,28)','rgb(166,206,227)','rgb(253,191,111)',
-		'rgb(178,223,138)','rgb(251,154,153)','rgb(202,178,214)','rgb(255,255,153)']
-
-		if(i < colorbrewerArray.length) {
-			return colorbrewerArray[i];
-		}
-
-		var nextColor = i-colorbrewerArray.length;
-		predefinedNameArray = ["blue", "magenta", "cyan", "orange", "black", "green", "gray", "yellow", "pink", "purple", "red", "brown", "teal", "aqua"]
-		if(nextColor < predefinedNameArray.length) {
-			return predefinedNameArray[nextColor];
+		if (i < colourPalette.length) {
+			return colourPalette[i];
 		}
 
 		return get_random_color();
 	}
-
 
 
 	function findContours(abstractDescription) {
@@ -1202,19 +1255,20 @@ console.log("timed out after "+(currentTime-start)/1000+" seconds. Permutation c
 
 	function findLabelSizes() {
 
+		document.getElementById('textLengthMeasure').innerHTML = ""; // clear the div
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 		let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("style", "dominant-baseline: central; font-family: Helvetica; font-size: 12pt;");
+        text.setAttribute("style", "font-family: Helvetica; font-size: " + labelFontSize + ";");
 		svg.appendChild(text);
 		document.getElementById('textLengthMeasure').appendChild(svg);
 
-		        const spaceWidth = text.getComputedTextLength();
+		const spaceWidth = text.getComputedTextLength();
 
 		var lengths = new Array();
 		var heights = new Array();
 		let maxHeight = 0;
 		let maxWidth = 0;
-		for(var i=0; i < ellipseLabel.length; i++) {
+		for (var i=0; i < ellipseLabel.length; i++) {
 			var label = ellipseLabel[i];
 
 			text.textContent = label;
@@ -1237,24 +1291,26 @@ console.log("timed out after "+(currentTime-start)/1000+" seconds. Permutation c
 
 	function findValueSizes() {
 
+		document.getElementById('textLengthMeasure').innerHTML = ""; // clear the div
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("style", "font-family: Helvetica; font-size: " + valueFontSize + ";");
+		svg.appendChild(text);
+		document.getElementById('textLengthMeasure').appendChild(svg);
+
 		var lengths = new Array();
 		var heights = new Array();
-		for(var i=0; i < globalOriginalProportions.length; i++) {
+		for (var i=0; i < globalOriginalProportions.length; i++) {
 			var label = globalOriginalProportions[i];
 
-			var textSVG = ' <text id="'+label+'" x=0 y=0 >'+label+'</text>'+"\n";
+			text.textContent = label;
 
-			var svgText = '<svg width = "200" height = "200">'+textSVG+'</svg>'
-			document.getElementById('textLengthMeasure').innerHTML = svgText;
-			var bbox1 = document.getElementById(label).getBBox();
-			var textWidth = Math.ceil(bbox1.width);
-			var textHeight = Math.ceil(bbox1.height);
-			lengths[i] = textWidth;
-			heights[i] = textHeight;
+			lengths[i] = text.getComputedTextLength();
+			heights[i] = text.getBBox().height;
 		}
 		document.getElementById('textLengthMeasure').innerHTML = ""; // clear the div
 		return {
-			lengths : lengths,
-			heights: heights
+			lengths,
+			heights
 		};
 	}

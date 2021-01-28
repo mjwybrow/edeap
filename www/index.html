@@ -16,6 +16,14 @@
 
 	function init() {
 
+		let palette = document.getElementById('palette');
+		// Add colour palette options to HTML select element.
+		for (var paletteName in colourPalettes) {
+			var option = document.createElement("option");
+			option.text = paletteName;
+			palette.add(option);
+		}
+
 		let filePickerRef = document.getElementById('areaSpecFilePicker');
 
 		filePickerRef.addEventListener("change", function(event) {
@@ -49,10 +57,15 @@
 		var areaSpecificationText = gup('areaSpecification');
 		width = gup('width');
 		height = gup('height');
-		setLabels = gup('setLabels');
-		intersectionValues = gup('intersectionValues');
+		setLabelSize = gup('setLabelSize');
+		intersectionLabelSize = gup('intersectionLabelSize');
 		startingDiagram = gup('startingDiagram');
 		optimizationMethod = gup('optimizationMethod');
+		colourPaletteName = gup('palette').replace("+", " ");
+
+		if (colourPaletteName === "") {
+			colourPaletteName = "Tableau10";
+		}
 
 		if (optimizationMethod === "")
 		{
@@ -89,20 +102,32 @@
 			document.getElementById("heightEntry").value = height;
 		}
 
-		if(setLabels === "off") {
-			document.getElementById('setLabelsOff').checked = true;
-			document.getElementById('setLabelsOn').checked = false;
+		if (setLabelSize === "") {
+			document.getElementById('setLabelSizeEntry').placeholder = defaultLabelFontSize;
 		} else {
-			document.getElementById('setLabelsOff').checked = false;
-			document.getElementById('setLabelsOn').checked = true;
+			if (!isNaN(setLabelSize)) {
+				setLabelSize = Math.floor(setLabelSize);
+			}
+			else {
+				setLabelSize = "";
+			}
+			document.getElementById('setLabelSizeEntry').value = setLabelSize;
+			labelFontSize = setLabelSize + "pt";
+			showSetLabels = (setLabelSize > 0);
 		}
 
-		if(intersectionValues === "off") {
-			document.getElementById('intersectionValuesOff').checked = true;
-			document.getElementById('intersectionValuesOn').checked = false;
+		if (intersectionLabelSize === "") {
+			document.getElementById('intersectionLabelSizeEntry').placeholder = defaultValueFontSize;
 		} else {
-			document.getElementById('intersectionValuesOff').checked = false;
-			document.getElementById('intersectionValuesOn').checked = true;
+			if (!isNaN(intersectionLabelSize)) {
+				intersectionLabelSize = Math.floor(intersectionLabelSize);
+			}
+			else {
+				intersectionLabelSize = "";
+			}
+			document.getElementById('intersectionLabelSizeEntry').value = intersectionLabelSize;
+			valueFontSize = intersectionLabelSize + "pt";
+			showIntersectionValues = (intersectionLabelSize > 0);
 		}
 
 		if(startingDiagram === "random") {
@@ -123,11 +148,24 @@
 			generateInitialLayout();
 		}
 
-		globalLabelLengths = findLabelSizes().lengths;
-		globalValueLengths = findValueSizes().lengths;
-		globalValueHeights = findValueSizes().heights;
+		let labelSizes = findLabelSizes();
+		globalLabelWidths = labelSizes.lengths;
+		globalLabelHeights = labelSizes.heights;
+		let valueSizes = findValueSizes();
+		globalValueWidths = valueSizes.lengths;
+		globalValueHeights = valueSizes.heights;
 
+		if (ellipseLabel.length > colourPalettes[colourPaletteName].length) {
+			console.log("More ellipses than supported by " + colourPaletteName + " colour palette. Using Tableau20 palette.");
+			colourPaletteName = "Tableau20";
+		}
 
+		// Select the chosen colour palette.
+		for (let i = 0; i < palette.length; i++) {
+			if (colourPaletteName == palette.options[i].text) {
+				palette.selectedIndex = i;
+			}
+		}
 
 		// reproducability logging code should go here
 
@@ -155,17 +193,6 @@
 		translateY = transformation.translateY;
 
 		document.getElementById('areaSpecification').innerHTML = decodeAbstractDescription(areaSpecificationText);
-
-		showSetLabels = true;
-		if(setLabels === "off") {
-			showSetLabels = false;
-		}
-
-		showIntersectionValues = true;
-		if(intersectionValues === "off") {
-			showIntersectionValues = false;
-		}
-
 
 		document.getElementById('ellipsesSVG').innerHTML = generateSVG(canvasWidth, canvasHeight, showSetLabels, showIntersectionValues, translateX, translateY, scaling);
 
@@ -327,36 +354,43 @@
 					<input type="button" value="Random Area Specification" onclick="generateRandomDiagram();">
 				</span>
 		</td>
-		<td class="panel" width="260px;">
+		<td class="panel" width="270px;">
 				<h3>Edeap controls:</h3>
 				<table>
-					<tbody><tr>
-						<td>
-							Diagram width: <br>
-							Diagram height: <br>
-							<br />
-							Set labels: <br>
-							Intersection values: <br>
-							<span class="developer">
-								[DEV] Optimization method: <br>
-								[DEV] Starting diagram: <br>
-							</span
-						</td>
-						<td>
-							<input type="text" id="widthEntry" name="width" size="6" value="" placeholder="500"> px<br>
-							<input type="text" id="heightEntry" name="height" size="6" value="" placeholder="500"> px<br>
-							<br />
-							<input type="radio" id="setLabelsOn" name="setLabels" value="on"><label for="setLabelsOn"> Show</label> &nbsp;
-							<input type="radio" id="setLabelsOff" name="setLabels" value="off"><label for="setLabelsOff"> Hide</label><br>
-							<input type="radio" id="intersectionValuesOn" name="intersectionValues" value="on"><label for="intersectionValuesOn"> Show</label> &nbsp;
-							<input type="radio" id="intersectionValuesOff" name="intersectionValues" value="off"><label for="intersectionValuesOff"> Hide</label><br>
-							<span class="developer">
-								<input type="radio" id="optimizationHill" name="optimizationMethod" value="1" checked="checked"><label for="optimizationHill"> Hill Climbing</label> &nbsp;
-								<input type="radio" id="optimizationSE" name="optimizationMethod" value="2"><label for="optimizationSE"> Simulated Annealing</label><br>
-								<input type="radio" id="startingDefault" name="startingDiagram" value="default" checked="checked"><label for="startingDefault"> Default</label> &nbsp;
-								<input type="radio" id="startingRandom" name="startingDiagram" value="random"><label for="startingRandom"> Random Layout</label><br>
-							</span>
-						</td>
+					<tbody>
+					<tr>
+						<td>Diagram size:</td>
+						<td><input type="text" id="widthEntry" name="width" size="5" value="" placeholder="500"> x
+							<input type="text" id="heightEntry" name="height" size="5" value="" placeholder="500"> px</td>
+					</tr>
+					<tr>
+						<td>Colour palette:</td>
+						<td><select name="palette" id="palette">
+						</select></td>
+					</tr>
+					<tr>
+						<td style="height: 5px;"></td><td></td>
+					</tr>
+					<tr>
+						<td>Set labels:</td>
+						<td><input type="text" id="setLabelSizeEntry" name="setLabelSize" size="3" value="" placeholder="12"> pt &nbsp; (0 for none)</td>
+					</tr>
+					<tr>
+						<td>Intersection labels:</td>
+						<td><input type="text" id="intersectionLabelSizeEntry" name="intersectionLabelSize" size="3" value="" placeholder="12"> pt &nbsp; (0 for none)</td>
+					</tr>
+					<tr class="developer">
+						<td>[DEV] Optimization method:</td>
+						<td><input type="radio" id="optimizationHill" name="optimizationMethod" value="1" checked="checked"><label for="optimizationHill"> Hill Climbing</label> &nbsp;
+						<input type="radio" id="optimizationSE" name="optimizationMethod" value="2"><label for="optimizationSE"> Simulated Annealing</label></td>
+					</tr>
+					<tr class="developer">
+						<td>[DEV] Starting diagram:</td>
+						<td><input type="radio" id="startingDefault" name="startingDiagram" value="default" checked="checked"><label for="startingDefault"> Default</label> &nbsp;
+						<input type="radio" id="startingRandom" name="startingDiagram" value="random"><label for="startingRandom"> Random Layout</label></td>
+					</tr>
+					<tr>
+						<td style="height: 5px;"></td><td></td>
 					</tr>
 				</tbody></table>
 				<input type="submit" value="Draw Diagram">

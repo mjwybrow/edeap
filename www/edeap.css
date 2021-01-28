@@ -30,7 +30,7 @@ p + ul {
 
 #ellipsesSVG {
     width: calc(100vw - 390px);
-    height: calc(100vh - 222px);
+    height: calc(100vh - 234px);
     position: absolute;
 
     z-index: -1;

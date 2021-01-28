@@ -52,6 +52,9 @@
 
 	let canvasSize = 1400 ;
 
+	labelFontSize = "20pt";
+	valueFontSize = "20pt";
+
 	function initBatch() {
 
 		// simple check for IE 8 or less
@@ -66,8 +69,6 @@
 		var areaSpecificationText = gup('areaSpecification');
 		width = gup('width');
 		height = gup('height');
-		setLabels = gup('setLabels');
-		intersectionValues = gup('intersectionValues');
 		startingDiagram = gup('startingDiagram');
 
 		if(width === "") {
@@ -80,16 +81,6 @@
 			height = canvasSize;
 		} else {
 			document.getElementById("heightEntry").value = height;
-		}
-
-		showSetLabels = true;
-		if(setLabels === "off") {
-			showSetLabels = false;
-		}
-
-		showIntersectionValues = true;
-		if(intersectionValues === "off") {
-			showIntersectionValues = false;
 		}
 
 		testDirectories = [];
@@ -366,9 +357,12 @@
 
 		generateInitialLayout();
 
-		globalLabelLengths = findLabelSizes().lengths;
-		globalValueLengths = findValueSizes().lengths;
-		globalValueHeights = findValueSizes().heights;
+		let labelSizes = findLabelSizes();
+		globalLabelWidths = labelSizes.lengths;
+		globalLabelHeights = labelSizes.heights;
+		let valueSizes = findValueSizes();
+		globalValueWidths = valueSizes.lengths;
+		globalValueHeights = valueSizes.heights;
 
 		animationDelay = 0;
 		animateOptimizer = false;
@@ -1166,9 +1160,12 @@
 */		}
 //		svgString += '</svg>';
 
-		globalLabelLengths = findLabelSizes().lengths;
-		globalValueLengths = findValueSizes().lengths;
-		globalValueHeights = findValueSizes().heights;
+		let labelSizes = findLabelSizes();
+		globalLabelWidths = labelSizes.lengths;
+		globalLabelHeights = labelSizes.heights;
+		let valueSizes = findValueSizes();
+		globalValueWidths = valueSizes.lengths;
+		globalValueHeights = valueSizes.heights;
 
 		var width = canvasSize;
 		var height = canvasSize;

@@ -189,8 +189,9 @@ class EdeapAreas
         if (typeof globalArrays === "undefined")
         {
             globalArrays = ["globalZoneStrings", "globalProportions",
-                    "globalValueLengths", "globalValueHeights",
-                    "globalLabelLengths", "globalOriginalProportions",
+                    "globalValueWidths", "globalValueHeights",
+                    "globalLabelWidths", "globalLabelHeights",
+                    "globalOriginalProportions",
                     "ellipseLabel", "ellipseParams"];
         }
 
@@ -780,7 +781,7 @@ class EdeapAreas
                         xMax++;
                     }
 
-                    var xMid = xMin + Math.round((xMax - xMin) / 2);
+                    var xMid = xMin + Math.floor((xMax - xMin) / 2);
                     if (x !== xMid)
                     {
                         movement = true;
@@ -802,7 +803,7 @@ class EdeapAreas
                         yMax++;
                     }
 
-                    var yMid = yMin + Math.round((yMax - yMin) / 2);
+                    var yMid = yMin + Math.floor((yMax - yMin) / 2);
                     if (y !== yMid)
                     {
                         movement = true;
@@ -811,8 +812,8 @@ class EdeapAreas
                 }
 
                 // Calculate and return the actual point.
-                var xPos = oversizedBB.p1.x + x * areaSampleStep;
-                var yPos = oversizedBB.p1.y + y * areaSampleStep;
+                var xPos = startX + x * areaSampleStep;
+                var yPos = startY + y * areaSampleStep;
                 zoneLabelPositions[zone] = {
                     x: xPos,
                     y: yPos
